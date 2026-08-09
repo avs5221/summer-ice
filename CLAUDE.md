@@ -44,12 +44,22 @@ path aliases in the root and `apps/web` tsconfigs make the same imports resolve 
 type checker. Apps run their TypeScript directly (Node 24's native type stripping for the
 worker, Vite for web) rather than compiling packages to `dist/` first.
 
-Note on TypeScript project references: real composite project references (`"composite":
-true` + build-mode declaration emit) cannot coexist with a `--noEmit`-only workflow — the
-compiler refuses to reference a composite project without letting it emit. Since nothing
-here consumes compiled `.d.ts` output, the wiring below intentionally skips composite
-references in favor of path aliases + workspace `package.json` dependencies, which give
-the same "import by name" ergonomics without that conflict.
+Note on TypeScript project references (re-verified against TypeScript 6.0.3, not a
+TS7-only limitation): real composite project references assume a multi-step build graph —
+`tsc -b` compiles each referenced project and downstream projects consume its emitted
+`.d.ts`, they don't re-read its `.ts` source directly. Our root `tsconfig.json` instead
+puts every app and package's source `.ts`/`.tsx` files into one flat `include` so a single
+`tsc --noEmit` genuinely checks the whole repo in one pass (a solution-style root with only
+`references` and no `include` type-checks nothing at all under plain `tsc` — it's a silent
+no-op unless invoked with `-b`, which we don't want to require). Once source files a
+composite project owns are pulled into a second, non-`-b` program via a raw `include`
+glob, `tsc` correctly refuses (`TS6305`, "output file has not been built from source
+file") because that file's declaration output doesn't exist yet in that graph. The two
+strategies are mutually exclusive for the same files, not merely inconvenient together.
+Since nothing here consumes compiled `.d.ts` output anyway, the wiring below intentionally
+skips composite references in favor of path aliases + workspace `package.json`
+dependencies, which give the same "import by name" ergonomics without requiring a build
+step or a `-b` invocation.
 
 ## TypeScript
 
@@ -60,6 +70,26 @@ whole repo actually type-checks. `pnpm install` regenerates `apps/web`'s React R
 route types (`postinstall` → `react-router typegen`) that the root check depends on — if
 `tsc` reports a route file's `./+types/*` import as missing, run `pnpm install` again
 rather than chasing it as a real error.
+
+## apps/worker runs TypeScript directly — no enums, namespaces, or parameter properties
+
+`apps/worker` executes `.ts` files straight through Node 24's built-in type stripping
+(`node src/index.ts`, no build step, no `tsx`/`ts-node`). Type stripping is *erasure*, not
+compilation — it deletes type syntax and runs what's left, and never evaluates types. That
+rules out any TypeScript construct that isn't pure erasable syntax:
+
+- **No `enum`** (including `const enum`) — it compiles to real runtime code, not just
+  types. Use a union of string literals, or a `const` object with `as const`.
+- **No `namespace`/`module` blocks** with runtime members.
+- **No constructor parameter properties** (`constructor(private x: number)`) — they
+  expand into assignment statements the stripper won't generate. Declare the field and
+  assign it in the constructor body instead.
+
+This applies to any module the worker imports, transitively — including everything in
+`packages/core`, `packages/contracts` and `packages/db`. Those packages are consumed by
+`apps/web` too (via Vite, which *does* compile), so this constraint is the tighter of the
+two and effectively governs the shared packages: write them as if Node's stripper will run
+them directly, even where a given file happens to load through Vite instead.
 
 ## Rules
 

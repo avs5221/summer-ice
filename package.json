@@ -9,12 +9,18 @@
     "postinstall": "pnpm --filter @summerice/web run typegen",
     "typecheck": "tsc --noEmit",
     "typecheck:all": "pnpm --if-present -r run typecheck",
+    "lint": "eslint .",
+    "lint:all": "pnpm --if-present -r run lint",
     "dev:web": "pnpm --filter @summerice/web run dev",
     "start:worker": "pnpm --filter @summerice/worker run start"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
     "@types/node": "26.2.0",
-    "typescript": "7.0.2",
+    "eslint": "10.8.1",
+    "globals": "17.9.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.66.0",
     "vite": "8.2.1"
   }
 }
