@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "types": ["node", "vite/client"],
+    "rootDirs": ["./apps/web", "./apps/web/.react-router/types"],
+    "paths": {
+      "@summerice/core": ["./packages/core/index.ts"],
+      "@summerice/contracts": ["./packages/contracts/index.ts"],
+      "@summerice/db": ["./packages/db/index.ts"],
+      "~/*": ["./apps/web/app/*"]
+    }
+  },
+  "include": [
+    "apps/web/app/**/*.ts",
+    "apps/web/app/**/*.tsx",
+    "apps/web/*.ts",
+    "apps/worker/src/**/*.ts",
+    "packages/*/*.ts"
+  ],
+  "exclude": ["node_modules", "**/node_modules", "**/dist", "**/build", "**/.react-router"]
+}

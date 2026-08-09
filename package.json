@@ -1,0 +1,20 @@
+{
+  "name": "summer-ice",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.19.0"
+  },
+  "scripts": {
+    "postinstall": "pnpm --filter @summerice/web run typegen",
+    "typecheck": "tsc --noEmit",
+    "typecheck:all": "pnpm --if-present -r run typecheck",
+    "dev:web": "pnpm --filter @summerice/web run dev",
+    "start:worker": "pnpm --filter @summerice/worker run start"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "typescript": "7.0.2",
+    "vite": "8.2.1"
+  }
+}
