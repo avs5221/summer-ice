@@ -1,7 +1,7 @@
-// Seeds reference data and a realistic 2026 season, per
-// docs/DOMAIN-MODEL.md §1 (ground truth) and §2 (levels). Idempotent — safe
-// to re-run, via ON CONFLICT DO NOTHING keyed on each table's unique
-// constraint.
+// Seeds reference data and the real 2026 season, per docs/DOMAIN-MODEL.md
+// §1 ("The actual 2026 slots" — use this, not an invented schedule) and §2
+// (levels). Idempotent — safe to re-run, via ON CONFLICT DO NOTHING keyed
+// on each table's unique constraint.
 //
 // Deliberately does NOT seed ice_sessions / ice_session_capacities /
 // session_coaches, or any people/credentials/roles rows — generating 22
@@ -19,12 +19,21 @@ import {
   slots,
 } from "./schema/index.ts";
 
+// Individual ijshockey.nl divisions, per DOMAIN-MODEL §2 ("name —
+// ijshockey.nl division naming"). NOT combined into "2nd/3rd"-style rows:
+// DOMAIN-MODEL §3 says slot_levels is many-to-many "because '5th/6th
+// Division' covers two" — i.e. a compound slot label links to TWO separate
+// level rows, which only works if the underlying levels are single
+// divisions. Rank orders by competitiveness, most to least; Recreational
+// and Skills sit below the numbered divisions.
 const REAL_LEVELS: Array<{ name: string; rank: number }> = [
-  { name: "2nd/3rd", rank: 1 },
-  { name: "3rd/4th", rank: 2 },
-  { name: "5th/6th", rank: 3 },
-  { name: "Recreational", rank: 4 },
-  { name: "Skills", rank: 5 },
+  { name: "2nd", rank: 1 },
+  { name: "3rd", rank: 2 },
+  { name: "4th", rank: 3 },
+  { name: "5th", rank: 4 },
+  { name: "6th", rank: 5 },
+  { name: "Recreational", rank: 6 },
+  { name: "Skills", rank: 7 },
 ];
 
 const SEASON_2026 = {
@@ -39,10 +48,14 @@ const SEASON_2026 = {
   status: "active",
 };
 
-// Synthetic dev schedule — DOMAIN-MODEL §1 gives only the total slot count
-// (10) and per-position capacity/price, not an actual weekday/time grid.
-// One rink, evenings Mon-Fri, a Sunday morning skills slot. Ordered
-// weekday-then-time, matching how the public schedule reads.
+// The real, published 2026 schedule, per DOMAIN-MODEL.md §1 "The actual
+// 2026 slots" — use this table verbatim, not an invented distribution.
+// Ordered weekday-then-time, matching how the public schedule reads and
+// matching the table's own row order.
+//
+// levelNames has TWO entries for every compound-named slot ("5th/6th
+// Division", "3rd/4th Division", "2nd/3rd Division") — see the levels
+// comment above. Only Recreational and Skills Training map to one.
 const SLOT_DEFS: Array<{
   weekday: number; // ISO: 1 = Monday .. 7 = Sunday
   startTime: string;
@@ -51,21 +64,30 @@ const SLOT_DEFS: Array<{
   sessionType: "scrimmage" | "skills_training";
   levelNames: string[];
 }> = [
-  { weekday: 1, startTime: "20:30", endTime: "21:30", label: "2nd/3rd", sessionType: "scrimmage", levelNames: ["2nd/3rd"] },
-  { weekday: 1, startTime: "21:30", endTime: "22:30", label: "3rd/4th", sessionType: "scrimmage", levelNames: ["3rd/4th"] },
-  { weekday: 2, startTime: "20:30", endTime: "21:30", label: "Recreational", sessionType: "scrimmage", levelNames: ["Recreational"] },
-  { weekday: 2, startTime: "21:30", endTime: "22:30", label: "Recreational", sessionType: "scrimmage", levelNames: ["Recreational"] },
-  { weekday: 3, startTime: "20:30", endTime: "21:30", label: "5th/6th", sessionType: "scrimmage", levelNames: ["5th/6th"] },
-  { weekday: 3, startTime: "21:30", endTime: "22:30", label: "5th/6th", sessionType: "scrimmage", levelNames: ["5th/6th"] },
-  { weekday: 4, startTime: "20:30", endTime: "21:30", label: "2nd/3rd", sessionType: "scrimmage", levelNames: ["2nd/3rd"] },
-  { weekday: 4, startTime: "21:30", endTime: "22:30", label: "3rd/4th", sessionType: "scrimmage", levelNames: ["3rd/4th"] },
-  { weekday: 5, startTime: "21:00", endTime: "22:00", label: "Recreational", sessionType: "scrimmage", levelNames: ["Recreational"] },
-  { weekday: 7, startTime: "09:00", endTime: "10:30", label: "Skills Training", sessionType: "skills_training", levelNames: ["Skills"] },
+  { weekday: 2, startTime: "21:30", endTime: "22:30", label: "5th/6th Division", sessionType: "scrimmage", levelNames: ["5th", "6th"] },
+  { weekday: 3, startTime: "20:15", endTime: "21:15", label: "Skills Training", sessionType: "skills_training", levelNames: ["Skills"] },
+  { weekday: 3, startTime: "21:30", endTime: "22:30", label: "Recreational", sessionType: "scrimmage", levelNames: ["Recreational"] },
+  { weekday: 4, startTime: "20:15", endTime: "21:15", label: "3rd/4th Division", sessionType: "scrimmage", levelNames: ["3rd", "4th"] },
+  { weekday: 4, startTime: "21:30", endTime: "22:30", label: "5th/6th Division", sessionType: "scrimmage", levelNames: ["5th", "6th"] },
+  { weekday: 5, startTime: "20:15", endTime: "21:15", label: "3rd/4th Division", sessionType: "scrimmage", levelNames: ["3rd", "4th"] },
+  { weekday: 5, startTime: "21:30", endTime: "22:30", label: "5th/6th Division", sessionType: "scrimmage", levelNames: ["5th", "6th"] },
+  { weekday: 6, startTime: "20:15", endTime: "21:15", label: "Skills Training", sessionType: "skills_training", levelNames: ["Skills"] },
+  { weekday: 6, startTime: "21:30", endTime: "22:30", label: "Recreational", sessionType: "scrimmage", levelNames: ["Recreational"] },
+  { weekday: 7, startTime: "19:00", endTime: "20:00", label: "2nd/3rd Division", sessionType: "scrimmage", levelNames: ["2nd", "3rd"] },
 ];
+// Distribution check (DOMAIN-MODEL §1): 3x 5th/6th, 2x 3rd/4th,
+// 2x Skills Training, 2x Recreational, 1x 2nd/3rd = 10.
 
 // Ground truth, DOMAIN-MODEL §1. Extras prices apply regardless of slot
 // type — the ground truth table only differentiates season price by
 // scrimmage vs skills training, not extras price.
+//
+// Scrimmage capacity (20 skaters / 2 goalies) is confirmed. Skills Training
+// capacity is NOT: DOMAIN-MODEL §1 / §14 D12 records it as an open question
+// — split ice means 20/2 doesn't apply, and the real skater/goalie
+// capacities have never been established (needs Cas). The numbers below
+// are a placeholder only, clearly flagged as such in both this comment and
+// the seed's own console output — do not treat them as authoritative.
 const CAPACITY_BY_SESSION_TYPE: Record<
   "scrimmage" | "skills_training",
   {
@@ -77,9 +99,7 @@ const CAPACITY_BY_SESSION_TYPE: Record<
     skater: { capacity: 20, ideal: 16, seasonPriceCents: 30000 },
     goalie: { capacity: 2, ideal: 2, seasonPriceCents: 15000 },
   },
-  // Split ice — DOMAIN-MODEL §1 gives only the season prices for skills
-  // training, not headcounts. Invented, smaller than full-ice regular
-  // capacity, clearly synthetic.
+  // PLACEHOLDER — see D12 above. Not a real, confirmed capacity.
   skills_training: {
     skater: { capacity: 10, ideal: 8, seasonPriceCents: 45000 },
     goalie: { capacity: 2, ideal: 2, seasonPriceCents: 45000 },
@@ -179,11 +199,12 @@ async function main(): Promise<void> {
       .select()
       .from(slotCapacities)
       .where(eq(slotCapacities.slotId, slotRow.id));
+    const provisional = def?.sessionType === "skills_training" ? " [capacity PROVISIONAL — DOMAIN-MODEL §14 D12]" : "";
     const capSummary = caps
       .map((c) => `${c.position} ${c.capacity}/ideal ${c.idealCapacity} @ €${c.seasonPriceCents / 100} season / €${c.extrasPriceCents / 100} extras`)
       .join(", ");
     console.log(
-      `  ${WEEKDAY_NAMES[slotRow.weekday]} ${slotRow.startTime}-${slotRow.endTime} "${slotRow.label}" (${def?.sessionType}) — ${capSummary}`,
+      `  ${WEEKDAY_NAMES[slotRow.weekday]} ${slotRow.startTime}-${slotRow.endTime} "${slotRow.label}" (${def?.sessionType}) — ${capSummary}${provisional}`,
     );
   }
 

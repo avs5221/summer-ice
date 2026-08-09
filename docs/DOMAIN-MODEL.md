@@ -30,6 +30,31 @@ Facts about the league, as of the 2026 season. All of these are **data, not cons
 
 Note: €300 over 22 weeks is €13.64/skate, so a skater committing to a season gets a modest discount against the €15 extras rate. Goalie pricing is deliberately not cost-recovery — goalies are scarce and essential, and the pricing exists to recruit and retain them.
 
+### The actual 2026 slots
+
+The real schedule, as published. **Use this for seed data** — a plausible-but-invented schedule makes wrong UI look correct during review.
+
+| Day | Time | Level | Type |
+|---|---|---|---|
+| Tuesday | 21:30–22:30 | 5th/6th Division | scrimmage |
+| Wednesday | 20:15–21:15 | Skills Training | skills_training |
+| Wednesday | 21:30–22:30 | Recreational | scrimmage |
+| Thursday | 20:15–21:15 | 3rd/4th Division | scrimmage |
+| Thursday | 21:30–22:30 | 5th/6th Division | scrimmage |
+| Friday | 20:15–21:15 | 3rd/4th Division | scrimmage |
+| Friday | 21:30–22:30 | 5th/6th Division | scrimmage |
+| Saturday | 20:15–21:15 | Skills Training | skills_training |
+| Saturday | 21:30–22:30 | Recreational | scrimmage |
+| Sunday | 19:00–20:00 | 2nd/3rd Division | scrimmage |
+
+Distribution: 3× 5th/6th, 2× 3rd/4th, 2× Skills Training, 2× Recreational, 1× 2nd/3rd.
+
+Two shapes of hour: the 21:30–22:30 late slot and the 20:15–21:15 earlier one, with Sunday at 19:00 the outlier. Every slot is exactly one hour.
+
+**None of this is stable year to year.** Slot count, days, times, levels and capacities all change with what the rink offers. It is all per-season data — no enums in code for levels, no hardcoded 20/2.
+
+> **Open — Skills Training capacity.** Skills Training is split ice, skaters on one half and goalies on the other, so 20/2 does not apply. The actual skater and goalie capacities have never been established, and at €450 per person these are the most expensive slots sold. Needs Cas.
+
 ### Changes from current practice
 
 | Today | New |
@@ -85,6 +110,23 @@ Rules:
 > **The system stores no age data beyond the signup attestation.** The "I am 16 or over" confirmation guards against minors creating their own accounts, which is the only place age matters. Nothing else in the model branches on it: dependents are billed to their guardian and notified through their guardian whether they are 9 or 49.
 >
 > Age is self-reported either way, so a date of birth would buy no verification — only more personal data to hold and protect. And a dependent coming of age needs no system nudge; they can simply create their own account when they want one, or stay in the family account indefinitely.
+
+### `sessions`
+
+Long-lived, revocable credentials. One table serves both clients — a web cookie session and a native refresh token have the same shape and differ only in lifetime.
+
+- `id`, `person_id` → `people`
+- `client` — `web` | `native`
+- `token_hash` — the hash, never the raw token. Unique; it is the lookup key.
+- `expires_at`, `last_used_at`
+- `revoked_at` — logout is a soft revoke, so the row survives as an audit trail
+- `created_at`
+
+Every lookup filters on `revoked_at is null AND expires_at > now()`.
+
+Deliberately **not** stored: IP address, user agent, device name. Personal data with no identified use, and inconsistent with storing no age data beyond the signup attestation.
+
+Short-lived native access tokens are stateless and never stored. Refresh-token rotation and reuse detection are out of scope for v1; nothing here precludes them.
 
 ### `levels`
 
@@ -783,7 +825,9 @@ Registration is built **first and hardened**, because it carries the most money 
 
 ### Open
 
-None outstanding. Every question raised during this pass is settled above.
+| # | Decision | Needs |
+|---|---|---|
+| D12 | Skills Training capacity — split ice, so 20/2 does not apply. Skater and goalie capacities unknown, and at €450/head these are the highest-value slots sold. See §1. | Cas |
 
 ---
 
