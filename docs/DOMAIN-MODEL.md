@@ -23,7 +23,7 @@ Facts about the league, as of the 2026 season. All of these are **data, not cons
 | Season price — goalie | €150 per slot (half price, regular), €450 (skills training, full price) |
 | Extras price — skater | €15 per skate |
 | Extras price — goalie | Free |
-| Levels | 2nd/3rd, 3rd/4th, 5th/6th, Recreational, Skills |
+| Levels | 2nd, 3rd, 4th, 5th, 6th, Recreational — six individual divisions, not the compound slot labels |
 | Registration opens | ~January |
 | Public interest list | ~350 people, including many who have never skated in Leiden |
 | Demand | exceeds supply; popular slots fill fast |
@@ -193,6 +193,10 @@ Which levels a slot is **intended for**. Many-to-many, because "5th/6th Division
 - `slot_id`, `level_id`
 
 This is advisory. It drives the label shown on the schedule and feeds the mismatch flag in §4. It does **not** gate selection — any player may register for any slot.
+
+**Levels are individual divisions, never compound labels.** A slot labelled "5th/6th Division" links to two rows, `5th` and `6th`. This is the whole reason the relationship is many-to-many.
+
+**A slot with zero `slot_levels` rows has no level expectation and never raises a mismatch flag.** Skills Training is the case: it is a beginners' format rather than a division, so `session_type` describes it and no level applies. "Skills" is deliberately not a level — no player self-reports it.
 
 ### `slot_capacities` — **the key table**
 

@@ -25,7 +25,11 @@ import {
 // Division' covers two" — i.e. a compound slot label links to TWO separate
 // level rows, which only works if the underlying levels are single
 // divisions. Rank orders by competitiveness, most to least; Recreational
-// and Skills sit below the numbered divisions.
+// sits below the numbered divisions.
+//
+// "Skills" is deliberately NOT a level, per DOMAIN-MODEL §1/§3 — it's a
+// session format, already captured by slots.session_type, and no player
+// self-reports it. Six levels, not seven.
 const REAL_LEVELS: Array<{ name: string; rank: number }> = [
   { name: "2nd", rank: 1 },
   { name: "3rd", rank: 2 },
@@ -33,7 +37,6 @@ const REAL_LEVELS: Array<{ name: string; rank: number }> = [
   { name: "5th", rank: 4 },
   { name: "6th", rank: 5 },
   { name: "Recreational", rank: 6 },
-  { name: "Skills", rank: 7 },
 ];
 
 const SEASON_2026 = {
@@ -55,7 +58,10 @@ const SEASON_2026 = {
 //
 // levelNames has TWO entries for every compound-named slot ("5th/6th
 // Division", "3rd/4th Division", "2nd/3rd Division") — see the levels
-// comment above. Only Recreational and Skills Training map to one.
+// comment above. Recreational maps to one. Skills Training maps to NONE:
+// per DOMAIN-MODEL §3, a slot with zero slot_levels rows has no level
+// expectation and never raises a mismatch flag — exactly the Skills
+// Training case, since it's a format, not a division.
 const SLOT_DEFS: Array<{
   weekday: number; // ISO: 1 = Monday .. 7 = Sunday
   startTime: string;
@@ -65,13 +71,13 @@ const SLOT_DEFS: Array<{
   levelNames: string[];
 }> = [
   { weekday: 2, startTime: "21:30", endTime: "22:30", label: "5th/6th Division", sessionType: "scrimmage", levelNames: ["5th", "6th"] },
-  { weekday: 3, startTime: "20:15", endTime: "21:15", label: "Skills Training", sessionType: "skills_training", levelNames: ["Skills"] },
+  { weekday: 3, startTime: "20:15", endTime: "21:15", label: "Skills Training", sessionType: "skills_training", levelNames: [] },
   { weekday: 3, startTime: "21:30", endTime: "22:30", label: "Recreational", sessionType: "scrimmage", levelNames: ["Recreational"] },
   { weekday: 4, startTime: "20:15", endTime: "21:15", label: "3rd/4th Division", sessionType: "scrimmage", levelNames: ["3rd", "4th"] },
   { weekday: 4, startTime: "21:30", endTime: "22:30", label: "5th/6th Division", sessionType: "scrimmage", levelNames: ["5th", "6th"] },
   { weekday: 5, startTime: "20:15", endTime: "21:15", label: "3rd/4th Division", sessionType: "scrimmage", levelNames: ["3rd", "4th"] },
   { weekday: 5, startTime: "21:30", endTime: "22:30", label: "5th/6th Division", sessionType: "scrimmage", levelNames: ["5th", "6th"] },
-  { weekday: 6, startTime: "20:15", endTime: "21:15", label: "Skills Training", sessionType: "skills_training", levelNames: ["Skills"] },
+  { weekday: 6, startTime: "20:15", endTime: "21:15", label: "Skills Training", sessionType: "skills_training", levelNames: [] },
   { weekday: 6, startTime: "21:30", endTime: "22:30", label: "Recreational", sessionType: "scrimmage", levelNames: ["Recreational"] },
   { weekday: 7, startTime: "19:00", endTime: "20:00", label: "2nd/3rd Division", sessionType: "scrimmage", levelNames: ["2nd", "3rd"] },
 ];

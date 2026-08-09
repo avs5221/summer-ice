@@ -15,6 +15,13 @@
       "when": 1786244384439,
       "tag": "0001_add_identity_and_season_structure",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786248631201,
+      "tag": "0002_registration_money_attendance_and_notifications",
+      "breakpoints": true
     }
   ]
 }
