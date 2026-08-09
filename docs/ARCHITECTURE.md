@@ -217,6 +217,39 @@ Migrations are generated from schema-as-code, committed, and applied on deploy. 
 
 One connection pool for the web app, a separate one for the worker.
 
+### Schema conventions
+
+`DOMAIN-MODEL.md` specifies tables and columns. It deliberately does not specify types, keys or constraints — those live here, so they are decided once rather than guessed per table.
+
+**Primary keys: `uuid primary key default uuidv7()`.** Native in Postgres 18, no extension needed. Time-ordered, so B-tree locality is good and index bloat is low, while still being non-enumerable in URLs. Registration and claim IDs appear in links, and sequential integers would let anyone count the league or guess neighbours.
+
+Caveat, accepted: a UUIDv7 leaks its creation time. For a registration or a claim that is harmless — the creation time is already visible to the person who made it.
+
+**Timestamps: always `timestamptz`, never `timestamp`.** The whole system turns on deadlines — `release_at`, `hold_expires_at`, `offer_expires_at`, `closes_at`. A naive timestamp during a Dutch daylight-saving transition would silently shift a release deadline by an hour. Every table gets `created_at timestamptz not null default now()`.
+
+**Money: signed `integer` cents.** Never `numeric`, never `float`. Already reflected in the `_cents` column naming.
+
+**Status columns: `text` plus a `CHECK` constraint, not Postgres `enum` types.** Statuses in this model will change — registration and claim states especially. Postgres enums can be appended to but not reordered or removed without a rewrite, and Drizzle migrations across enum changes are unpleasant. A check constraint gives the same safety and is trivial to alter.
+
+**Foreign keys: every one declares its `on delete` behaviour explicitly.** Default to `restrict`. **Never `cascade` on anything touching money or history** — `ledger_entries`, `payments`, `registrations`, `claims`, `attendances`. Deleting a person must fail loudly while they have financial history rather than silently erasing it. Lookup and join tables (`slot_levels`, `poll_options`) may cascade.
+
+**Columns are `not null` unless nullability is a deliberate modelled decision**, and where it is, the domain model says so (`guardian_id`, `cart_id`, `superseded_by_id`).
+
+**Unique constraints wherever the domain implies uniqueness**, per invariant §4.4. Non-obvious cases:
+
+- `levels (name)` and `levels (rank)` — two levels at the same rank makes ordering ambiguous
+- `slot_capacities (slot_id, position)` and `ice_session_capacities (ice_session_id, position)` — one capacity row per position, and this is the row every claim locks
+- `payments (mollie_payment_id)` — the idempotency key for webhook retries
+- `attendances (registration_id, ice_session_id)`
+- `poll_votes (poll_id, person_id)`
+- The partial unique index on `registrations` in §4.4
+
+**Check constraints for cheap domain invariants:** capacities non-negative, `ideal_capacity <= capacity`, prices non-negative, `rank > 0`, session `end_at > start_at`.
+
+**Naming:** `snake_case` throughout, plural table names, singular foreign keys (`person_id`).
+
+**Migrations:** always pass `--name` to `drizzle-kit generate`. Auto-generated names like `0000_nostalgic_mathemanic` are unreadable once there are twenty of them.
+
 ---
 
 ## 6. Jobs and schedules
