@@ -53,12 +53,12 @@ Web and native are two clients of one API. The worker is a separate process runn
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Runtime | Node 22.22+ | React Router v8 minimum |
-| Language | TypeScript, strict | ESM throughout |
-| Web framework | React Router v8, framework mode | v8.2.0 released 2026-07-08. **Not** Next.js, **not** "Remix" |
-| React | 19.2.7+ | v8 minimum |
-| Build | Vite 7+ | v8 framework mode requirement |
-| Styling | Tailwind v4 | |
+| Runtime | Node 24.19.0 | v8 floor is 22.22 |
+| Language | TypeScript 6.x, strict | ESM throughout. **Not** 7.x — see below |
+| Web framework | React Router 8.3.0, framework mode | **Not** Next.js, **not** "Remix" |
+| React | 19.2.8 | v8 floor is 19.2.7 |
+| Build | Vite 8.2.1 | v8 framework mode requirement (floor is Vite 7) |
+| Styling | Tailwind 4.3.3 | |
 | Database | PostgreSQL 18 | Same host, unix socket |
 | Query layer | Drizzle | Schema-as-code, generated migrations |
 | Jobs | pg-boss 12.x | Postgres-backed, `SKIP LOCKED` |
@@ -71,9 +71,27 @@ Web and native are two clients of one API. The worker is a separate process runn
 
 Pin exact versions at scaffold time and do not chase minors between September and December. React Router moved to annual majors with v9 targeted around May 2027, so v8 covers this build comfortably.
 
-**Verified as of August 2026:** React Router v8.2.0 (v8.0.0 on 17 June, v8.2.0 on 8 July), the Node 22.22 / React 19.2.7 / Vite 7 floors, Hetzner CX pricing, Postmark tiers.
+**Installed and verified, August 2026** (scaffold commit `53b4dbf`):
 
-**Not verified — check at install rather than trusting this table:** current Expo SDK, current Drizzle release, current pg-boss patch, current Postgres 18 point release.
+| Package | Version |
+|---|---|
+| react-router | 8.3.0 |
+| react | 19.2.8 |
+| vite | 8.2.1 |
+| tailwindcss | 4.3.3 |
+| typescript | 6.x — **not 7.x**, see below |
+
+**TypeScript stays on the 6.x line.** TypeScript 7.0 went GA on 8 July 2026 as the Go-native port and is genuinely ~10x faster, but it ships without a public compiler API until 7.1, which means **typescript-eslint cannot run on it**. It also has incomplete project-reference `--build` support, no declaration emit, and diagnostics that do not yet match the classic compiler exactly. Linting and exact diagnostics matter more than compile speed on a repo this size, where a full check takes seconds either way. Microsoft runs a dual track with 6.x supported for compatibility, so this is a supported position rather than a dead end. Revisit once 7.1 ships the API and the ecosystem catches up.
+
+**Not verified — check at install:** current Expo SDK, current Drizzle release, current pg-boss patch, current Postgres 18 point release.
+
+### Build-step constraints
+
+There is no compile step. `packages/*` export TypeScript source directly; `apps/web` goes through Vite, and `apps/worker` runs `.ts` via Node 24's native type stripping.
+
+Type stripping **deletes** type annotations rather than compiling them, so it does not support TS `enum`, `namespace`, or constructor parameter properties. Use union types and `const` objects instead. This constraint applies to `packages/core` and anything else the worker imports.
+
+Formal TypeScript project references (`composite` + `references`) are not used; the graph is wired through path aliases plus `workspace:*` dependencies. Same import-by-name ergonomics without the emit conflict.
 
 ### Why not Next.js
 
