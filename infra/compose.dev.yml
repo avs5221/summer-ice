@@ -1,0 +1,42 @@
+# Local development Postgres only. No Caddy, no worker wiring, no production
+# stack here — see docs/ARCHITECTURE.md §10 for what production Compose adds
+# (web, worker, caddy containers, pgBackRest, unix-socket connection instead
+# of the TCP port mapped below).
+#
+# Invoke via the root package.json db:* scripts, which pass --env-file and a
+# fixed project name so container/volume names never depend on cwd.
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: summerice
+      POSTGRES_DB: summerice
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set — see .env.example}
+    ports:
+      # Host 5433 -> container 5432, deliberately offset so this never
+      # collides with a Postgres already listening on the Windows side
+      # under WSL. Dev DATABASE_URL below must use 5433 to match.
+      - "5433:5432"
+    volumes:
+      # postgres:18+ images store data under a major-version-specific
+      # subdirectory of /var/lib/postgresql itself (pg_ctlcluster-style),
+      # not /var/lib/postgresql/data as on 17 and earlier — mount the
+      # parent or the entrypoint refuses to start.
+      # See https://github.com/docker-library/postgres/pull/1259
+      - summerice_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U summerice -d summerice"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  # Named explicitly (rather than left to the default project-prefixed name)
+  # so `db:nuke` (compose down -v) removes something unambiguous to read in
+  # `docker volume ls`, and so it survives regardless of which directory
+  # compose is invoked from.
+  summerice_pgdata:
+    name: summerice_pgdata
