@@ -1,0 +1,3 @@
+ALTER TABLE "payments" ADD COLUMN "claim_id" uuid;--> statement-breakpoint
+ALTER TABLE "payments" ADD CONSTRAINT "payments_claim_id_claims_id_fk" FOREIGN KEY ("claim_id") REFERENCES "public"."claims"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "payments" ADD CONSTRAINT "payments_cart_or_claim_exclusive" CHECK (not ("payments"."cart_id" is not null and "payments"."claim_id" is not null));

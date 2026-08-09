@@ -2,15 +2,20 @@
 // payment — docs/ARCHITECTURE.md §4.5. mollie_payment_id is the webhook
 // idempotency key, since Mollie retries.
 //
-// NOTE: DOMAIN-MODEL §8 gives this table no claim_id/registration_id
-// column — only cart_id. For a paid extras claim, the webhook-to-claim
-// correlation therefore isn't a DB foreign key here; it's presumably
-// carried in Mollie's own payment metadata at the application layer, with
-// ledger_entries.reference_type/reference_id recording the claim
-// afterward. Not adding a column the domain model doesn't specify.
+// What a payment is for is exactly one of three cases, enforced by
+// payments_cart_or_claim_exclusive below: cart_id set (a registration cart,
+// or an accepted waitlist offer), claim_id set (an extras claim), or both
+// null (settling an outstanding balance — a payment-plan instalment or
+// dispensation catch-up). Never both set.
+//
+// These are real foreign keys, not a polymorphic pair, precisely so the
+// webhook can determine what it's confirming from the database alone.
+// Mollie's payment metadata is a cross-check only — it must never be
+// load-bearing for reconciliation.
 import { sql } from "drizzle-orm";
 import { check, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { createdAt, id } from "./_columns.ts";
+import { claims } from "./claims.ts";
 import { mandates } from "./mandates.ts";
 import { people } from "./people.ts";
 import { registrationCarts } from "./registration_carts.ts";
@@ -34,8 +39,12 @@ export const payments = pgTable(
     // Nullable — mandates are explicitly Phase two; most v1 payments won't
     // reference one.
     mandateId: uuid("mandate_id").references(() => mandates.id, { onDelete: "restrict" }),
-    // Nullable, per the domain model's own text.
+    // Nullable — a registration cart, or an accepted waitlist offer. At
+    // most one of cart_id/claim_id may be set; see the CHECK below.
     cartId: uuid("cart_id").references(() => registrationCarts.id, { onDelete: "restrict" }),
+    // Nullable — an extras claim. At most one of cart_id/claim_id may be
+    // set; see the CHECK below.
+    claimId: uuid("claim_id").references(() => claims.id, { onDelete: "restrict" }),
     createdAt: createdAt(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     webhookReceivedAt: timestamp("webhook_received_at", { withTimezone: true }),
@@ -47,5 +56,11 @@ export const payments = pgTable(
       sql`${t.status} in ('open', 'canceled', 'pending', 'authorized', 'expired', 'failed', 'paid')`,
     ),
     unique("payments_mollie_payment_id_unique").on(t.molliePaymentId),
+    // At most one of cart_id/claim_id — never both. The third valid state
+    // (settling an outstanding balance) is both null.
+    check(
+      "payments_cart_or_claim_exclusive",
+      sql`not (${t.cartId} is not null and ${t.claimId} is not null)`,
+    ),
   ],
 );

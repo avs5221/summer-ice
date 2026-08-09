@@ -343,6 +343,8 @@ When capacity opens on a slot:
 
 Promotion is **never** a silent charge. Someone waitlisted in January may not want the slot in March. Notify, get acceptance, then charge. If the person has a stored payment mandate, acceptance can charge off-session in one tap.
 
+Acceptance creates a **one-line `registration_carts` row** rather than charging the registration directly, so promotion reuses the same payment and webhook path as ordinary registration. One route, not two kept in step.
+
 **Swap on acceptance.** If the player took an alternative slot while waiting, the offer presents two choices: accept and keep both, or accept and release the alternative. Releasing is an ordinary withdrawal — credit per refund policy, no special case. Without this the player has to accept, then separately hunt for the withdrawal, and will occasionally end up paying for two slots they didn't want.
 
 ### Level flagging (advisory, non-blocking)
@@ -594,7 +596,24 @@ That means receivables and payables live in one append-only stream with one bala
 
 - `mollie_payment_id` (unique), `person_id`, `amount_cents`
 - `status`, `method`, `mandate_id`
-- `cart_id` nullable, `created_at`, `paid_at`, `webhook_received_at`
+- `cart_id` → `registration_carts`, nullable
+- `claim_id` → `claims`, nullable
+- `created_at`, `paid_at`, `webhook_received_at`
+
+**What a payment can be for.** Exactly three cases, with a CHECK enforcing that *at most one* of `cart_id` and `claim_id` is set:
+
+| `cart_id` | `claim_id` | Meaning |
+|---|---|---|
+| set | null | A registration cart, or an accepted waitlist offer |
+| null | set | An extras claim |
+| null | null | Settling an outstanding balance — a payment-plan instalment or dispensation catch-up |
+| set | set | Impossible |
+
+These are real foreign keys, not a polymorphic pair. Payments are where money enters the system, and the webhook must be able to determine what it is confirming **from the database alone** — never by parsing Mollie metadata. Metadata should still be set as a cross-check, but an external system must never be load-bearing for reconciliation.
+
+`ledger_entries` is polymorphic because it legitimately references many kinds of thing. `payments` is not, because it references two.
+
+**Waitlist promotion creates a one-line cart** rather than charging a bare registration. That keeps one payment path, one webhook handler and one place where totals are computed, instead of a second parallel route that has to be kept in step.
 
 ### `mandates`
 
