@@ -5,8 +5,8 @@ import { dbPooled } from "@summerice/db";
 import { getSlotFillOverview } from "@summerice/core";
 import { SEASON } from "~/lib/fake-data";
 import { LandingSlotRow } from "./landing-slot-row";
+import { SiteFooter } from "./site-footer";
 import { SiteNav } from "./site-nav";
-import { ThemeToggle } from "./theme-toggle";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -224,24 +224,7 @@ export default async function Home() {
         </section>
       </div>
 
-      <footer className={styles.footer}>
-        <div className={styles.footerInner}>
-          <div className={styles.footerBrand}>
-            <Image src="/logo-circle.png" alt="" width={18} height={18} className={styles.brandMark} />
-            <span className={styles.footerWordmark}>
-              Summer <span style={{ color: "var(--primary)" }}>Ice</span>
-            </span>
-          </div>
-          <span>© {SEASON.startDate.getFullYear()} · Leiden, NL</span>
-          <div className={styles.footerLinks}>
-            <a href="#schedule">Schedule</a>
-            <a href="#how">How it works</a>
-            <a href="#">Contact</a>
-            <a href="#">Privacy</a>
-            <ThemeToggle />
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

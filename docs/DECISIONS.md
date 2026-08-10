@@ -1061,3 +1061,71 @@ just visually styled to look it, a 420px mobile viewport, and confirmed
 `/` still shows "Sign in" correctly *inactive* and "Register" in its
 default (non-primary) color, i.e. the new `active="login"` nav state
 didn't leak into other pages. Zero console errors.
+
+### 2026-08-10 — `/contact` implemented from `Contact.dc.html`; two real corrections, one caught only by screenshotting
+
+Implemented `Contact.dc.html`: header band, a two-column layout (message
+form card + a sidebar of three cards — email, rink/map, a "before you
+write" pointer to `/#how`), the login-style floating theme toggle, and
+the landing-style rich footer. First page created from scratch this
+design-import series rather than a restyle of something existing —
+`/contact` didn't exist before (only `#` placeholder links pointed at
+it).
+
+**`SiteFooter` extracted, then immediately had to grow a flag.** Second
+real use of the rich footer (landing's), so factored it out the same way
+`SiteNav` was — but the first screenshot of the result showed *two*
+theme toggles on `/contact`: the inline one `SiteFooter` inherited from
+landing's current footer, stacked with the floating one this page also
+needs (`Contact.dc.html`'s own footer has no toggle in it at all —
+confirmed by re-reading its markup — it relies solely on the separate
+floating button, the same as Login). `SiteFooter` gained a `themeToggle`
+prop (default `true`, matching `/`; `/contact` passes `false`) rather
+than either page compromising to match the other — the two source pages
+genuinely disagree on where the toggle lives, so the shared component
+needed to represent both, not average them. Caught by the screenshot,
+not by reading the diff — the code looked correct in isolation.
+
+**Two corrections to the design's own copy, not just its layout:**
+
+- **`hello@summerice.club` → `hello@summerice.nl`.** `.club` is the
+  self-hosted plan's now-gone staging subdomain (`ARCHITECTURE.md` §10:
+  "`summerice.club` ... is gone along with the Compose staging stack it
+  identified"), not this project's real domain — `ARCHITECTURE.md`'s own
+  opening line says the application "takes over `summerice.nl`
+  entirely." The design's static `mailto:` link was pointing at a
+  address that belongs to an abandoned plan, not a stylistic choice
+  worth preserving the way "iDEAL or Wero" was.
+- **The contact form doesn't pretend to have a backend it doesn't
+  have.** No outbox table, no `email.send` job, no route handler exists
+  to receive a POST from this form (`STATE.md`: "No outbox table, no
+  Cron endpoints, no notification jobs"; Postmark per `ARCHITECTURE.md`
+  §9 is wired to that specific job, which doesn't exist). Building a
+  form that submits somewhere and claims success while the message goes
+  nowhere would be a worse outcome than the design's own unwired mock —
+  silent data loss dressed up as confirmation, the same class of problem
+  as the Google OAuth entry above, just with a passing form instead of a
+  broken redirect. Composes a `mailto:` link from the filled fields and
+  hands off to the user's own mail client instead — genuinely
+  functional, needs no infrastructure this repo doesn't have, and the
+  confirmation copy ("Your email app should have opened...") says
+  exactly what happened rather than "Message sent."
+
+**Other adaptations:** `SiteNav` gained an optional `active` (Contact
+isn't one of the nav's four destinations — its own nav design has no
+active item at all). Footer's "Schedule"/"How it works" fragment links
+changed from bare `#schedule`/`#how` to `/#schedule`/`/#how` as part of
+the extraction — the bare form only ever worked by accident, on `/`
+where those ids exist; `SiteFooter` needed the full path to behave
+correctly from Contact too. The global wave-1 `Nav`'s hide-list became a
+`Set` rather than a fourth chained `||`, now that it's four routes long.
+
+**Verified:** `npx tsc --noEmit` (root) and `eslint` clean (one warning
+fixed: a plain `<a>` for an internal link, switched to `next/link`).
+Headless Chromium: filled and submitted the form (confirmed the
+in-app confirmation copy renders, not just that nothing crashed), light
+and dark mode, a 420px mobile viewport, and — the actual regression this
+pass caught and fixed — confirmed via `getAttribute("href")` that both
+`/` and `/login`'s footers now link to `/contact` and that `/` itself
+still renders correctly after the `SiteFooter` extraction. Zero console
+errors throughout.

@@ -1,0 +1,210 @@
+/* Contact page — translated from the "Summer Ice Landing" Claude Design
+ * project (Contact.dc.html), same approach as the other restyled pages:
+ * real classes + media queries instead of the design's inline styles.
+ * Shared tokens (`.page`, `.eyebrow`) come from ../page.module.css.
+ */
+
+.headerBand {
+  background: var(--sky-surface);
+  border-bottom: 1px solid var(--sky-border);
+}
+
+.headerBandInner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 20px 28px;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.main {
+  max-width: 1080px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 36px 28px 64px;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .main {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Form card ────────────────────────────────────────────────────── */
+
+.formCard {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-cd);
+  box-shadow: var(--shadow-cd-md);
+  padding: 28px 30px;
+}
+
+.formTitle {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.formSubtitle {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 520px) {
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.input,
+.select,
+.textarea {
+  padding: 11px 13px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--input);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+  font-family: var(--font-sans);
+}
+
+.textarea {
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.sentNote {
+  font-size: 13px;
+  color: var(--green);
+  font-weight: 600;
+}
+
+.submitBtn {
+  align-self: flex-start;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  border: 0;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.submitBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ─── Sidebar ──────────────────────────────────────────────────────── */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sideCard {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-cd);
+  padding: 22px 24px;
+}
+
+.sideCardMuted {
+  background: var(--bg-subtle);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-cd);
+  padding: 22px 24px;
+}
+
+.sideLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin-bottom: 10px;
+}
+
+.sideEmail {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.sideText {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+.sideHeading {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.mapFrame {
+  margin-top: 14px;
+  height: 180px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.mapFrame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.sideLink {
+  color: var(--primary);
+  font-weight: 600;
+}

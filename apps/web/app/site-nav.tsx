@@ -18,7 +18,11 @@ import styles from "./page.module.css";
 // "Sign in" gets the same underlined-active treatment as "Home" when
 // `active === "login"` (per Login.dc.html), rather than a filled pill —
 // it's a plain nav destination there, not also a CTA the way Register is.
-export function SiteNav({ active }: { active: "home" | "register" | "login" }) {
+// `active` is optional because not every page with this nav is one of its
+// four destinations — Contact.dc.html's own nav has no active item at
+// all (Contact isn't a top-nav link, only a footer one), so omitting it
+// leaves every link in its plain, inactive state, matching that design.
+export function SiteNav({ active }: { active?: "home" | "register" | "login" }) {
   return (
     <nav className={styles.nav}>
       <div className={styles.navInner}>
