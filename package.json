@@ -20,6 +20,7 @@
     "db:migrate:prod": "pnpm --filter @summerice/db run migrate:prod",
     "db:studio": "pnpm --filter @summerice/db run studio",
     "db:seed": "pnpm --filter @summerice/db run seed",
+    "db:seed:prod": "pnpm --filter @summerice/db run seed:prod",
     "db:health:realtime": "pnpm --filter @summerice/db run health:realtime"
   },
   "devDependencies": {

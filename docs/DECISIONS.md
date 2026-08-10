@@ -173,3 +173,34 @@ one cacheable page, and the rule that protects it") and §10.
 `/register`, `/schedule` and `/admin` the moment any of them reads the
 database instead of fake data — none of them force dynamic rendering today
 because none of them need to yet. See `CLAUDE.md`'s warning on this.
+
+---
+
+### 2026-08-10 — `ice_sessions` seeded on Supabase; RLS-enabled-with-no-policies documented as deliberate
+
+Supabase had 0 `ice_sessions` rows against local Docker's 220 — the deployed
+homepage had no upcoming session to read fill from. Added a `seed:prod`
+script (`packages/db/package.json`, `package.json`), mirroring `migrate:prod`
+exactly: `SUMMERICE_ENV=production`, gated by `guard-host.ts
+remote-required`, no bypass. Ran it against the real project; confirmed 220
+`ice_sessions` / 6 `levels` / 10 `slots` / 20 `slot_capacities` / 14
+`slot_levels`; ran it a second time and confirmed the counts didn't move,
+proving the `ON CONFLICT DO NOTHING` idempotency `seed.ts` was already
+written for actually holds against Supabase, not just local Docker.
+`getSlotFillOverview` run directly against Supabase afterward returns all 10
+slots with a correct next-upcoming session. See `STATE.md` for the current
+per-environment table.
+
+Separately, formalized something that was already true but only noted in
+passing: every Supabase table has RLS enabled with zero policies (a platform
+default, not something this codebase configured), which is harmless today
+because Drizzle connects as the `postgres` role and RLS doesn't apply to a
+table's owner. Added to `ARCHITECTURE.md` §5 as an explicit statement that
+RLS is deliberately not the authorization model here, plus a forward-looking
+warning: once Supabase Auth ships, a browser client querying a table
+directly with a user's JWT hits RLS for real, and "enabled, no policies"
+means it is denied everything, silently — a state that will present as an
+application bug, not an RLS error. That moment needs a deliberate choice
+(write real policies, or keep browser clients off direct table access
+entirely) rather than a debugging session that rediscovers this paragraph
+the hard way.

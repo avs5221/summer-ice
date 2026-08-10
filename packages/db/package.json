@@ -16,6 +16,7 @@
     "migrate:prod": "SUMMERICE_ENV=production node guard-host.ts remote-required direct && SUMMERICE_ENV=production drizzle-kit migrate",
     "studio": "node guard-host.ts local-only direct && drizzle-kit studio",
     "seed": "node guard-host.ts local-only direct && node seed.ts",
+    "seed:prod": "SUMMERICE_ENV=production node guard-host.ts remote-required direct && SUMMERICE_ENV=production node seed.ts",
     "health:realtime": "SUMMERICE_ENV=production node guard-host.ts remote-required direct && SUMMERICE_ENV=production node check-realtime.ts"
   },
   "dependencies": {

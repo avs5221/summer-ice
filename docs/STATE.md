@@ -11,14 +11,16 @@ running `tsc --noEmit` directly — not written from memory or assumption.
 
 ## Last commit
 
-`33cbbcd` — "fix: resolve vercel supabase env var names and render homepage
-dynamically" — 2026-08-10. One commit ahead of `origin/main` (unpushed).
+`2f17f99` — "docs: add index, state and decisions conventions" — 2026-08-10.
+Two commits ahead of `origin/main` (unpushed). This session's own work (seeding
+Supabase, documenting the RLS posture) lands in the commit right after this
+file is regenerated — check `git log -1` if you need the exact hash.
 
 ## What exists, per package
 
 | Package | One line |
 |---|---|
-| `packages/db` | Drizzle schema (27 tables), 6 migrations, seed script, env/guard-host scripts, realtime health check. No `outbox` table yet |
+| `packages/db` | Drizzle schema (27 tables), 6 migrations, seed script (now `seed` and `seed:prod`), env/guard-host scripts, realtime health check. No `outbox` table yet |
 | `packages/core` | One module: `slot-fill.ts` (computes live season-registration fill, mirrors the Realtime trigger's formula). No capacity-lock, claim, or attendance functions yet |
 | `packages/contracts` | Scaffolded (`index.ts`, zod dependency present), no schemas written yet |
 | `apps/web` | Next.js App Router. Five routes: `/` (real data, live), `/register`, `/schedule`, `/admin`, `/admin/session/[id]` (all four fake-data, wave-1 UI) |
@@ -26,7 +28,8 @@ dynamically" — 2026-08-10. One commit ahead of `origin/main` (unpushed).
 
 ## Database
 
-**27 tables, 6 migrations, in both environments — schema is in sync.**
+**27 tables, 6 migrations, in both environments — schema and seed data are now
+fully in sync.**
 
 | | Local Docker (`packages/db/docker-compose.yml`) | Supabase project |
 |---|---|---|
@@ -38,21 +41,23 @@ dynamically" — 2026-08-10. One commit ahead of `origin/main` (unpushed).
 | `levels` | 6 rows (seeded) | 6 rows (seeded) |
 | `seasons` | 1 row (seeded) | 1 row (seeded) |
 | `slots` / `slot_capacities` / `slot_levels` | 10 / 20 / 14 rows (seeded, the real 2026 schedule) | 10 / 20 / 14 rows (seeded, same) |
-| `ice_sessions` | **220 rows** (generated dated sessions) | **0 rows** |
+| `ice_sessions` | 220 rows (generated dated sessions) | **220 rows — seeded this session, via the new `db:seed:prod` script.** Confirmed idempotent: ran twice, counts unchanged both times |
 
-**Where they differ:** only `ice_sessions` — local has the full generated set
-of dated sessions for the season, Supabase does not. Nothing else diverges.
+**Nothing currently diverges between the two environments.** The one gap
+recorded in the prior version of this file (`ice_sessions` empty on
+Supabase, so the deployed homepage had nothing to read fill against) is
+closed.
 
-**Noteworthy, not a bug:** every table on the Supabase project has RLS
-*enabled* with zero policies (Supabase's own `rls_auto_enable` platform
-default, not something this codebase's migrations set — `grep` for `ROW
-LEVEL SECURITY` across `packages/db/migrations/*.sql` returns nothing). This
-doesn't contradict `ARCHITECTURE.md` §5's "no RLS on application data" —
-Drizzle connects directly as a role that bypasses RLS, so nothing is
-currently blocked — but it's a live security-advisor finding
-(`rls_enabled_no_policy`, INFO-level, on every table) worth knowing about
-before anything ever adds a PostgREST or `supabase-js` read path that isn't
-the Realtime channel.
+**RLS posture — deliberate, now written down in `ARCHITECTURE.md` §5, not
+just noted here.** Every table on the Supabase project has RLS *enabled*
+with zero policies (a Supabase platform default — `grep` for `ROW LEVEL
+SECURITY` across `packages/db/migrations/*.sql` returns nothing; this
+codebase never set it). Harmless today because `dbDirect()`/`dbPooled()`
+connect as the `postgres` role, which bypasses RLS entirely. **Not harmless
+once Supabase Auth ships**: a browser client querying a table directly with
+a user's JWT will be denied everything, silently, and it will look like an
+application bug rather than an RLS message. See `ARCHITECTURE.md` §5 for the
+full reasoning and the two options for when that day comes.
 
 ## Verified
 
@@ -63,6 +68,7 @@ What has genuinely been proven, versus what merely compiles:
 - **`uuidv7()` shim correctness.** Per `ARCHITECTURE.md` §5, verified with 5,000 generated values against a real Postgres 17 container and cross-checked against Postgres 18's native builtin — not by inspection.
 - **Live fill — trigger and WebSocket layer only.** The Supabase Realtime broadcast trigger (`0005_live_fill_broadcast.sql`) and the browser-side subscription hook (`use-live-fill.ts`) exist and are wired up. **This has never been exercised end-to-end through the actual homepage in a browser** — no one has opened `/`, changed a registration row, and watched the number update live. The trigger firing, the broadcast arriving, and the hook updating have each been reasoned about and code-reviewed, not observed together.
 - **Homepage (`/`) reads real data.** Confirmed `force-dynamic`, confirmed it queries `dbPooled()` and `getSlotFillOverview` rather than fake data.
+- **`getSlotFillOverview` against the real Supabase project.** Run directly (not through the web app) after seeding: returns all 10 rows, each with a correct next-upcoming `ice_session`, matching the seeded schedule and today's date. This confirms the data and the query are right; it is **not** the same as the browser-level live-fill check above, which is still unproven end-to-end.
 
 **Not verified / not built at all:**
 
