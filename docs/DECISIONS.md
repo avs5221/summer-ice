@@ -675,3 +675,105 @@ multi-provider identity merging, and wiring the real `/register` UI to
 the now-working `holdCart` route — everything up to and including this
 session still only reaches `packages/core` via `curl` and tests, not a
 person clicking through the actual site.
+
+### 2026-08-10 — Homepage restyled from the "Summer Ice Landing" Claude Design project
+
+Imported and implemented `Summer Ice Landing.dc.html` (Claude Design
+project `95d5c2c4-e2a2-48d5-9b54-084e81223b27`) as the new `/` — a
+marketing-grade nav/hero/schedule/footer page, replacing the plain
+bullet-list homepage. Purely presentational: the page still reads real
+data the same way it did before (`dbPooled()` → `getSlotFillOverview()`
+→ `force-dynamic`, unchanged, still satisfies `ARCHITECTURE.md` §8), and
+the live-fill subscription (`useLiveFill`) moved into a new
+`landing-slot-row.tsx` rather than being dropped.
+
+**Adapted rather than copied verbatim, in ways worth recording:**
+
+- The design's `assets/logo-circle.png`, `colors_and_type.css`'s design
+  tokens (OKLCH palette, shadows, radii) were pulled in; its self-hosted
+  Inter `.ttf` and its `image-slot.js`/`support.js` (the Claude Design
+  canvas's own preview runtime, not app code) were not — this repo
+  already loads Inter via `next/font/google`.
+- The design's per-instance customisation props (`heroLayout: split |
+  stacked`, `showLiveCounts`) are a Design-canvas authoring convenience,
+  not something a real page needs a prop for — implemented as one
+  responsive layout (CSS Grid + media queries reflow hero/stat-band/
+  schedule at ~720px) rather than porting the two-variant `sc-if` switch.
+- The schedule table's mock "kind" subtitle (e.g. "Drills for skaters and
+  goalies" under Skills Training) and the "Full · N waiting" queue count
+  aren't backed by real fields `getSlotFillOverview` returns — dropped
+  rather than fabricated. The stat band's four figures (`Tue–Sun`,
+  `2nd–6th + rec`, season dates, `Five-on-five · No contact`) are static
+  in the design's own source too (not template variables), so they stay
+  static copy here rather than being parsed out of live data.
+- Nav's "Sign in" and the season/register CTAs were pointed at this
+  repo's real routes (`/login`, `/register`) instead of the design's `#`
+  placeholders — those pages exist; only "Contact" and "Privacy" stay
+  `#`, since nothing exists there yet either.
+- Copy correction: the design's "How it works" step said "iDEAL or Wero."
+  `DOMAIN-MODEL.md` §6 only documents Mollie/iDEAL now, with SEPA Direct
+  Debit as an explicit phase-two item — nothing supports Wero. Changed to
+  "One iDEAL payment," a claim this repo can actually back.
+
+**Site-wide side effect, not scoped to just this page:** dark mode was
+previously pure `prefers-color-scheme`, no manual override anywhere. The
+design's floating light/dark toggle needed one, so `globals.css` now
+declares `@custom-variant dark (&:where(.dark, .dark *))`, switching
+every `dark:` Tailwind utility in the whole app (not just the landing
+page) from OS-preference-only to class-based with OS-preference as the
+initial default. An inline script in `layout.tsx`'s `<head>` sets the
+class before first paint (from `localStorage["si-theme"]`, falling back
+to `matchMedia`) so there's no flash; `<html>` got
+`suppressHydrationWarning` because that script deliberately mutates the
+DOM out from under React before hydration runs — the standard, documented
+shape of this exact tradeoff (the same one `next-themes` makes), not
+something discovered by accident.
+
+**Found only by actually driving a browser, not by curl or by reading the
+diff:** the first version hydration-mismatched on every page load —
+console error, not visible breakage — because the theme-init script's
+DOM mutation on `<html>` disagreed with React's expected server-rendered
+markup. `suppressHydrationWarning` above is the fix; it would not have
+been discovered without the browser check below, since `curl` sees
+identical server-rendered HTML either way and `tsc`/`eslint` have no
+opinion on hydration.
+
+**Verified, not just written:**
+
+- `npx tsc --noEmit` (root) and `eslint` on every changed file: clean.
+  One real `eslint` finding fixed along the way, not suppressed by
+  reflex: `theme-toggle.tsx`'s effect-based `setState` is the correct
+  shape for "avoid a hydration mismatch, then correct after mount," not
+  the anti-pattern `react-hooks/set-state-in-effect` normally flags —
+  kept, with a targeted `eslint-disable-next-line` and the reasoning
+  inline, rather than restructured into something that would reintroduce
+  the mismatch the effect exists to avoid.
+- Server-rendered HTML, via `curl` against a running dev server reading
+  the real (empty) local database: exactly 10 schedule rows in schedule
+  order (`Tue, Wed, Wed, Thu, Thu, Fri, Fri, Sat, Sat, Sun`), the live
+  count reading "10 of 10 slots still have room" (correct for an
+  all-empty `registrations` table), 10 "Claim →" links and 0 "Join
+  waitlist" links (also correct, since nothing is full), and `/register`
+  still rendering the original plain `Nav` (confirming the new hide-on-
+  `/` check in `nav.tsx` doesn't leak to other routes).
+- **A real browser, not just curl** — no browser-automation MCP tool was
+  available, so headless Chromium was made to run the same way a previous
+  session's `DECISIONS.md` entry (2026-08-09/10, live-fill) recorded and
+  this session confirmed still doesn't persist between sessions: `apt-get
+  download` the missing shared libs (`libnspr4`, `libnss3`,
+  `libatk-bridge2.0-0t64`, etc. — Ubuntu 24.04's `t64`-suffixed names)
+  into a scratch directory, `dpkg-deb -x` each into a local prefix (no
+  root needed for either step), `LD_LIBRARY_PATH` pointed at it, then
+  Playwright's own Chromium launched normally. Screenshotted light mode,
+  clicked the toggle and screenshotted dark mode (persisted via
+  `localStorage`, confirmed still dark after navigating to `/register` in
+  the same browser context), and a 420px-wide viewport to confirm the
+  hero/stat-band/schedule-table media queries actually reflow instead of
+  overflowing. `page.on("console"/"pageerror")` caught the hydration
+  mismatch above; after the fix, zero console errors across all of it.
+
+**Not verified:** the Realtime live-fill broadcast on this page
+specifically — `landing-slot-row.tsx` reuses the same `useLiveFill` hook
+already end-to-end proven (see the 2026-08-10 live-fill entries above)
+verbatim, just restyled, so this is judged low-risk rather than
+re-proven from scratch this session.

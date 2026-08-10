@@ -19,6 +19,11 @@ const links = [
 export function Nav() {
   const pathname = usePathname();
 
+  // The landing page ("/") has its own sticky nav + footer, matching the
+  // "Summer Ice Landing" design — with a Register CTA and a link to sign in,
+  // not this wave-1 walk-through nav. Rendering both would stack two navs.
+  if (pathname === "/") return null;
+
   return (
     <nav className="border-b border-gray-200 dark:border-gray-800">
       <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 text-sm">

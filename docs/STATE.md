@@ -19,18 +19,35 @@ service to confirm it's reachable and correctly configured. All passed.
 Next's Server Action wire protocol** — no browser-automation tool was
 available this session; see "Not verified" below.
 
+**Same day, later session:** the homepage (`/`) was restyled from the
+"Summer Ice Landing" Claude Design project — see `DECISIONS.md`. Verified
+by `npx tsc --noEmit` and `eslint` on every changed file (both clean, one
+real `eslint` finding fixed), `curl` against a running dev server reading
+the real local database (correct row count, order and live-count text),
+and — this time with a working browser — headless Chromium
+(`apt-get download` + `dpkg-deb -x` + `LD_LIBRARY_PATH`, no root; the same
+workaround a previous session used and this one had to redo from scratch,
+since it doesn't persist between sessions) screenshotting light mode,
+dark mode after clicking the new toggle, a 420px mobile viewport, and
+`/register` to confirm the old plain `Nav` still renders there. Caught and
+fixed one real bug this way — a hydration mismatch from the new
+theme-init script — that `curl`/`tsc`/`eslint` all missed.
+
 ---
 
 ## Last commit
 
 This file is regenerated as part of the same commit it describes, so it
-can't name its own hash in advance — check `git log -1`. That commit lands
-the first slice of build-order phase 4 (`ARCHITECTURE.md` §7): password
-sign-up/sign-in/sign-out via Supabase Auth, session handling
-(`@supabase/ssr`), the `credentials`/`roles` provisioning and lookup layer
-in `packages/core`, and — the actual point of doing this now — the three
-season-registration routes from the previous commit rewired to real
-session identity, closing the security gap they shipped with on purpose.
+can't name its own hash in advance — check `git log -1`. That commit
+restyles the homepage (`/`) from the "Summer Ice Landing" Claude Design
+project — new nav/hero/schedule-table/footer, a site-wide class-based
+dark-mode toggle, still reading real live data exactly as before. The
+previous commit landed the first slice of build-order phase 4
+(`ARCHITECTURE.md` §7): password sign-up/sign-in/sign-out via Supabase
+Auth, session handling (`@supabase/ssr`), the `credentials`/`roles`
+provisioning and lookup layer in `packages/core`, and the three
+season-registration routes rewired to real session identity, closing the
+security gap they shipped with on purpose.
 
 ## What exists, per package
 
@@ -39,7 +56,7 @@ session identity, closing the security gap they shipped with on purpose.
 | `packages/db` | Drizzle schema (27 tables), 7 migrations, seed scripts, env/guard-host scripts, realtime health check, `dbDirectPooled(max)`. No `outbox` table yet. **Found this session:** the `sessions` table (`token_hash`, `revoked_at`) is a self-hosted-plan relic nothing uses — Supabase Auth's own JWT/cookie session is authoritative. Left migrated, not dropped; see `ARCHITECTURE.md` §7 and `DOMAIN-MODEL.md` §2 |
 | `packages/core` | `slot-fill.ts`, `capacity-lock.ts`, `registration.ts`, `waitlist.ts` (season-registration concurrency core, phase 3, done). **New:** `identity.ts` — `ensurePersonForAuthUser` (the `credentials` insert on first sign-in, idempotent), `getPersonForAuthSubject`, `getPersonRoles`, `personHasRole`. 18 integration tests total (4 new), plus the on-demand `load-test/season-registration.ts` harness. No attendance or extras-claim functions; no accept-offer function; no dependent-promotion function |
 | `packages/contracts` | `registration.ts` (unchanged in shape except `personId` removed from `holdCartRequestSchema` — see below) plus **new** `identity.ts` (`signupRequestSchema`, `loginRequestSchema`) |
-| `apps/web` | Five UI routes still fake-data, wave-1, unchanged. Registration API routes (`app/api/registrations/**`, built last session) now call `~/lib/auth`'s `requireCurrentPerson`/`requireOwnerOrRole` instead of trusting a body-supplied `personId` — **the hold route's request schema no longer accepts `personId` at all**, it's taken from the session. **New:** `app/lib/supabase/server.ts` + `browser.ts` (the `@supabase/ssr` client factories — distinct from the pre-existing `app/lib/supabase-client.ts`, which stays the public, unauthenticated Realtime-only client, on purpose), `proxy.ts` (Next 16's renamed `middleware.ts` — session-cookie refresh only, no redirect gating), `app/lib/auth.ts` (`getCurrentPerson`/`requireCurrentPerson`/`requireOwnerOrRole`), `app/signup/`, `app/login/`, `app/lib/auth-actions.ts` (logout) |
+| `apps/web` | Registration API routes (`app/api/registrations/**`) call `~/lib/auth`'s `requireCurrentPerson`/`requireOwnerOrRole` instead of trusting a body-supplied `personId` — **the hold route's request schema no longer accepts `personId` at all**, it's taken from the session. `app/lib/supabase/server.ts` + `browser.ts` (the `@supabase/ssr` client factories — distinct from the pre-existing `app/lib/supabase-client.ts`, which stays the public, unauthenticated Realtime-only client, on purpose), `proxy.ts` (Next 16's renamed `middleware.ts` — session-cookie refresh only, no redirect gating), `app/lib/auth.ts` (`getCurrentPerson`/`requireCurrentPerson`/`requireOwnerOrRole`), `app/signup/`, `app/login/`, `app/lib/auth-actions.ts` (logout). `/register`, `/schedule` and `/admin` are still fake-data, wave-1. **New this session:** `/` restyled from the "Summer Ice Landing" Claude Design project — still `force-dynamic`, still reads `getSlotFillOverview()` for real, but now a real nav/hero/stat-band/schedule-table/footer instead of a bullet list (`app/page.module.css`, `app/theme-toggle.tsx`, `app/landing-slot-row.tsx`, replacing the now-deleted `app/slot-fill-row.tsx`). `app/components/nav.tsx` hides itself on `/` (the landing page has its own nav). `globals.css` gained the design's OKLCH token set and switched `dark:` to class strategy site-wide (`@custom-variant dark`); `layout.tsx` gained the theme-init inline script + `suppressHydrationWarning` on `<html>` that makes that safe — see `DECISIONS.md` |
 | `apps/mobile` | Does not exist — not scaffolded, per plan (Phase 4/12) |
 
 ### The registration routes' security gap is closed for the case tested
@@ -117,6 +134,7 @@ What has genuinely been proven, versus what merely compiles:
 - **The three registration routes, driven end-to-end with `curl` against a running dev server.** Hand-inserted fixture rows via direct SQL, then: `POST /api/registrations` → 201 with a held line and the correct price; `POST /api/registrations/:id/release` → `withdrawn` + `promoted: empty_queue`; a manually-inserted `offered` row plus a `waitlisted` row, then `POST /api/registrations/:id/decline` → `declined` + the waitlisted person promoted in the same response, confirmed against the database directly. All fixture data cleaned up afterward.
 - **Identity provisioning and lookup (`packages/core/identity.ts`), against real local Postgres.** 4 `node:test` integration tests, no mocks: `ensurePersonForAuthUser` provisions a new `people` + `credentials` row on first call and is idempotent on a second call for the same subject (no duplicate person); `getPersonForAuthSubject` returns null for an unlinked subject; `getPersonRoles`/`personHasRole` correctly reflect an inserted `roles` row and default to empty/false.
 - **The registration routes' auth check, against the real request pipeline (not just unit tests).** `curl -X POST /api/registrations` with no session cookie → `401 {"error":"authentication required"}` (previously: 201, since `personId` was trusted from the body). Same check against `/api/registrations/:id/release` and `/decline` with a **real** registration id (so the check reaches the ownership branch, not just "not found") → also 401. Confirms the gap flagged in the previous session's `STATE.md` is actually closed at the HTTP layer, not just in code that looks right.
+- **The restyled homepage (`/`), in a real browser, light and dark, desktop and mobile.** Headless Chromium (Playwright, run via the `apt-get download`/`dpkg-deb -x`/`LD_LIBRARY_PATH` no-root workaround) against a running dev server reading the real local database: screenshotted light mode, clicked the new theme toggle and screenshotted dark mode (confirmed `localStorage`-persisted across a navigation to `/register`, which still renders the original plain `Nav`, not the landing one), and a 420px viewport confirming the hero/stat-band/schedule-table media queries reflow. Zero console errors — but only after fixing one the first pass caught: a hydration mismatch from the theme-init script, invisible to `curl`/`tsc`/`eslint`. `curl` against the same running server independently confirmed the server-rendered HTML: 10 schedule rows in schedule order, "10 of 10 slots still have room" (correct for the empty local `registrations` table), 10 "Claim →" / 0 "Join waitlist" links.
 - **Supabase Auth itself is reachable and correctly configured for this project.** A direct `supabase.auth.signUp()` call (plain `@supabase/supabase-js`, the real project, not local) succeeded and returned the expected shape — confirmed email confirmation is **required** for this project (`session: null` on signup, `email_confirmed_at` unset), which is real, useful information: it means `apps/web/app/signup/actions.ts`'s "if `data.session`, go home; otherwise, check-your-email" branch is the branch that actually fires in practice, not a hypothetical. Test user deleted from `auth.users` afterward via the Supabase MCP.
 
 **Not verified / not built at all:**

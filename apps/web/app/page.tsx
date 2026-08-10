@@ -1,13 +1,16 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { dbPooled } from "@summerice/db";
 import { getSlotFillOverview } from "@summerice/core";
-import { SEASON, formatEuros } from "~/lib/fake-data";
-import { SlotFillRow } from "./slot-fill-row";
+import { SEASON } from "~/lib/fake-data";
+import { LandingSlotRow } from "./landing-slot-row";
+import { ThemeToggle } from "./theme-toggle";
+import styles from "./page.module.css";
 
 export const metadata: Metadata = {
   title: "Summer Ice — 2026 Season",
-  description: "Summer ice hockey in Leiden. Ten hours a week, register by the hour.",
+  description: "Ice hockey, all summer. Weekly ice at IJshal De Vliet in Leiden, end of March to end of August.",
 };
 
 // force-dynamic, deliberately: this page reads live fill counts, and
@@ -31,78 +34,240 @@ export const dynamic = "force-dynamic";
 // This is the first page reading real data — see docs/DOMAIN-MODEL.md §9
 // and packages/core/slot-fill.ts. Fill numbers are fetched fresh on every
 // render (never cached, never baked into a static response — see
-// docs/ARCHITECTURE.md §8, "the one cacheable page"), then the client picks
-// up live updates from there via SlotFillRow's useLiveFill.
+// docs/ARCHITECTURE.md §8, "the one cacheable page"), then each row picks
+// up live updates from there via LandingSlotRow's useLiveFill.
 async function loadSlotFill() {
   const db = dbPooled();
   return db.transaction((tx) => getSlotFillOverview(tx));
 }
 
+function formatSeasonRange(): string {
+  const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  return `${fmt(SEASON.startDate)} – ${fmt(SEASON.endDate)}`;
+}
+
 export default async function Home() {
   const slotFill = await loadSlotFill();
+  const openSlots = slotFill.filter(
+    (s) => s.skater.taken < s.skater.capacity || s.goalie.taken < s.goalie.capacity,
+  ).length;
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-950 dark:text-white">Summer Ice</h1>
-      <p className="mt-2 max-w-2xl text-gray-700 dark:text-gray-300">
-        Summer ice hockey in Leiden. Five-on-five, no-contact scrimmage, ten hours a week
-        from {SEASON.startDate.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}{" "}
-        to {SEASON.endDate.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} —
-        {" "}
-        {SEASON.weekCount} weeks. Register for a season, or claim a spot week to week once the
-        season is under way.
-      </p>
+    <div className={styles.page}>
+      <nav className={styles.nav}>
+        <div className={styles.navInner}>
+          <a href="#top" className={styles.brand}>
+            <Image src="/logo-circle.png" alt="Summer Ice" width={28} height={28} className={styles.brandMark} />
+            <span className={styles.wordmark}>
+              Summer <span style={{ color: "var(--primary)" }}>Ice</span>
+            </span>
+          </a>
+          <div className={styles.navLinks}>
+            <a href="#schedule" className={styles.navLink}>
+              Schedule
+            </a>
+            <a href="#how" className={styles.navLink}>
+              How it works
+            </a>
+            <a href="#rink" className={styles.navLink}>
+              The rink
+            </a>
+            <Link href="/login" className={styles.navLink}>
+              Sign in
+            </Link>
+            <Link href="/register" className={styles.registerBtn}>
+              Register
+            </Link>
+          </div>
+        </div>
+      </nav>
 
-      <div className="mt-6">
-        <Link
-          href="/register"
-          className="inline-block rounded bg-gray-950 px-5 py-2.5 font-semibold text-white hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
-        >
-          Register
-        </Link>
+      <ThemeToggle />
+
+      <div id="top" className={styles.hero}>
+        <div className={styles.heroInner}>
+          <div>
+            <div className={styles.eyebrow}>Leiden · {SEASON.name.replace("Summer Season", "season")}</div>
+            <h1 className={styles.heroTitle}>
+              Ice hockey,
+              <br />
+              all summer.
+            </h1>
+            <p className={styles.heroDesc}>
+              Weekly ice at IJshal De Vliet in Leiden, from the end of March to the end of August. Take a slot
+              for the season and it&rsquo;s yours every week.
+            </p>
+            <div className={styles.heroLive}>
+              <span className={styles.liveDot} />
+              <span className={styles.liveText}>
+                <strong>{openSlots}</strong> of <strong>{slotFill.length}</strong>{" "}
+                {slotFill.length === 1 ? "slot" : "slots"} still have room for the season
+              </span>
+            </div>
+            <div className={styles.heroActions}>
+              <Link href="/register" className={styles.btnPrimary}>
+                Sign me up →
+              </Link>
+              <a href="#schedule" className={styles.btnSun}>
+                See the schedule
+              </a>
+            </div>
+          </div>
+          <Image src="/logo-circle.png" alt="" width={140} height={140} className={styles.heroLogo} priority />
+        </div>
       </div>
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-950 dark:text-white">Prices</h2>
-        <div className="mt-2 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-gray-500 dark:border-gray-800 dark:text-gray-400">
-                <th className="py-1.5 pr-4 font-medium">Position</th>
-                <th className="py-1.5 pr-4 font-medium">Season, regular</th>
-                <th className="py-1.5 pr-4 font-medium">Season, skills training</th>
-                <th className="py-1.5 font-medium">Extras (per skate)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-gray-100 dark:border-gray-900">
-                <td className="py-1.5 pr-4">Skater</td>
-                <td className="py-1.5 pr-4">{formatEuros(30000)}</td>
-                <td className="py-1.5 pr-4">{formatEuros(45000)}</td>
-                <td className="py-1.5">{formatEuros(1500)}</td>
-              </tr>
-              <tr>
-                <td className="py-1.5 pr-4">Goalie</td>
-                <td className="py-1.5 pr-4">{formatEuros(15000)}</td>
-                <td className="py-1.5 pr-4">{formatEuros(45000)}</td>
-                <td className="py-1.5">Free</td>
-              </tr>
-            </tbody>
-          </table>
+      <div className={styles.statBand}>
+        <div className={styles.statBandInner}>
+          <div className={styles.stat}>
+            <div className={styles.statValue}>Tue–Sun</div>
+            <div className={styles.statLabel}>Evening ice</div>
+          </div>
+          <div className={styles.stat}>
+            <div className={styles.statValue}>2nd–6th + rec</div>
+            <div className={styles.statLabel}>Levels</div>
+          </div>
+          <div className={styles.stat}>
+            <div className={styles.statValue}>{formatSeasonRange()}</div>
+            <div className={styles.statLabel}>{SEASON.startDate.getFullYear()} season</div>
+          </div>
+          <div className={styles.stat}>
+            <div className={styles.statValue}>Five-on-five</div>
+            <div className={styles.statLabel}>No contact</div>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-950 dark:text-white">The ten hours</h2>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Live fill per position. A full slot is still shown, with a waitlist.
-        </p>
-        <ul className="mt-3 divide-y divide-gray-200 dark:divide-gray-800">
-          {slotFill.map((slot) => (
-            <SlotFillRow key={slot.slotId} slot={slot} />
-          ))}
-        </ul>
-      </section>
-    </main>
+      <div className={styles.main}>
+        <section id="schedule">
+          <div className={styles.sectionHead}>
+            <div className={styles.eyebrow}>Weekly schedule</div>
+            <h2 className={styles.sectionTitle}>Pick the nights that suit you.</h2>
+            <p className={styles.sectionDesc}>
+              Skater and goalie spots are counted separately, and availability updates live.
+            </p>
+          </div>
+
+          <div className={styles.scheduleCard}>
+            <div className={styles.scheduleHead}>
+              <span className={styles.scheduleHeadCell}>Day / Start</span>
+              <span className={styles.scheduleHeadCell}>Level</span>
+              <span className={styles.scheduleHeadCell}>Spots left</span>
+              <span className={`${styles.scheduleHeadCell} ${styles.right}`}>Action</span>
+            </div>
+            {slotFill.map((slot) => (
+              <LandingSlotRow
+                key={slot.slotId}
+                slot={{
+                  slotId: slot.slotId,
+                  weekdayLabel: slot.weekdayLabel,
+                  startTime: slot.startTime,
+                  label: slot.label,
+                  skater: slot.skater,
+                  goalie: slot.goalie,
+                }}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.dropin}>
+          <div>
+            <div className={styles.eyebrow}>Not ready for the season?</div>
+            <h2 className={styles.dropinTitle}>Skate a single night first.</h2>
+            <p className={styles.dropinDesc}>
+              When a registered player can&rsquo;t make their week, that spot opens up. Claim one, come skate,
+              and see whether the level suits you before committing to a season.
+            </p>
+          </div>
+          <Link href="/register" className={styles.btnSun} style={{ whiteSpace: "nowrap" }}>
+            Claim a drop-in spot →
+          </Link>
+        </section>
+
+        <section id="how">
+          <div className={styles.eyebrow}>How it works</div>
+          <h2 className={styles.sectionTitle} style={{ marginBottom: 20 }}>
+            Three steps, then just show up.
+          </h2>
+          <div className={styles.howGrid}>
+            <div className={styles.howCard}>
+              <div className={styles.howNum}>01</div>
+              <h3 className={styles.howTitle}>Pick your slots</h3>
+              <p className={styles.howDesc}>
+                Take one slot or five. Register as a skater or a goalie — if you play both, you can pick a
+                different role per slot.
+              </p>
+            </div>
+            <div className={styles.howCard}>
+              <div className={styles.howNum}>02</div>
+              <h3 className={styles.howTitle}>Pay once, for the season</h3>
+              <p className={styles.howDesc}>
+                One iDEAL payment covers the whole season. Your spot is held for ten minutes while you pay.
+              </p>
+            </div>
+            <div className={styles.howCard}>
+              <div className={styles.howNum}>03</div>
+              <h3 className={styles.howTitle}>Say when you can&rsquo;t make it</h3>
+              <p className={styles.howDesc}>
+                Decline a date up to 48 hours ahead and your spot opens for someone else that week. Nothing to
+                arrange yourself.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="rink" className={styles.rink}>
+          <div>
+            <div className={styles.eyebrow}>The rink</div>
+            <h2 className={styles.rinkTitle}>IJshal De Vliet, Leiden.</h2>
+            <p className={styles.rinkDesc}>
+              Every slot runs on the same sheet, Tuesday through Sunday evening, from 19:00 onwards, right
+              through to the end of August.
+            </p>
+          </div>
+          <div className={styles.mapFrame}>
+            <iframe
+              title="Map of IJshal De Vliet, Leiden"
+              src="https://www.google.com/maps?q=IJshal+De+Vliet+Leiden&output=embed"
+              loading="lazy"
+            />
+          </div>
+        </section>
+
+        <section className={styles.ctaSection}>
+          <div>
+            <h2 className={styles.ctaTitle}>Your spot, every week.</h2>
+            <p className={styles.ctaDesc}>
+              Registration for the {SEASON.startDate.getFullYear()} season is open. One payment holds your slot
+              for the whole season — no weekly sign-ups.
+            </p>
+          </div>
+          <div className={styles.ctaBtnWrap}>
+            <Link href="/register" className={styles.ctaBtn}>
+              Sign me up for the season →
+            </Link>
+          </div>
+        </section>
+      </div>
+
+      <footer className={styles.footer}>
+        <div className={styles.footerInner}>
+          <div className={styles.footerBrand}>
+            <Image src="/logo-circle.png" alt="" width={18} height={18} className={styles.brandMark} />
+            <span className={styles.footerWordmark}>
+              Summer <span style={{ color: "var(--primary)" }}>Ice</span>
+            </span>
+          </div>
+          <span>© {SEASON.startDate.getFullYear()} · Leiden, NL</span>
+          <div className={styles.footerLinks}>
+            <a href="#schedule">Schedule</a>
+            <a href="#how">How it works</a>
+            <a href="#">Contact</a>
+            <a href="#">Privacy</a>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

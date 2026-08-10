@@ -1,8 +1,94 @@
 @import "tailwindcss";
 
+/* Tailwind v4's `dark:` variant defaults to `prefers-color-scheme`. Switch it
+ * to class strategy so the landing page's manual light/dark toggle (see
+ * ./theme-toggle.tsx) actually controls every `dark:` utility site-wide, not
+ * just the landing page's own hand-rolled CSS variables. The class itself is
+ * still initialised from system preference on first load (see the inline
+ * script in layout.tsx) — this only adds the ability to override it.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+/* ─── Brand design tokens ───────────────────────────────────────────────
+ * Imported from the "Summer Ice Landing" Claude Design project
+ * (colors_and_type.css) for the landing page's polished-pass visual system.
+ * Other pages don't reference these yet — they still use Tailwind's plain
+ * gray palette directly, per CLAUDE.md's "no styling investment yet" note
+ * on the wave-1 flows — so adding these tokens here is inert for them.
+ */
+:root {
+  --background: oklch(0.992 0.001 65);
+  --foreground: oklch(0.18 0.04 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.04 250);
+
+  --primary: oklch(0.55 0.13 235);
+  --primary-foreground: oklch(0.985 0 0);
+  --muted-foreground: oklch(0.42 0.02 250);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.91 0.005 250);
+
+  --bg-subtle: oklch(0.952 0.005 250);
+  --sun: oklch(0.72 0.15 75);
+  --sun-lo: oklch(0.78 0.16 88 / 0.14);
+  --sun-border: oklch(0.72 0.15 75 / 0.3);
+  --sun-text-on-lo: oklch(0.38 0.12 60);
+  --green: oklch(0.52 0.18 145);
+
+  --sky-surface: oklch(0.93 0.05 220);
+  --sky-border: oklch(0.86 0.07 220);
+
+  --shadow-cd-sm: 0 1px 3px oklch(0.16 0.04 250 / 0.06), 0 1px 6px oklch(0.16 0.04 250 / 0.04);
+  --shadow-cd: 0 2px 8px oklch(0.16 0.04 250 / 0.08), 0 4px 16px oklch(0.16 0.04 250 / 0.04);
+  --shadow-cd-md: 0 4px 16px oklch(0.16 0.04 250 / 0.1), 0 8px 24px oklch(0.16 0.04 250 / 0.06);
+  --shadow-cd-lg: 0 8px 32px oklch(0.16 0.04 250 / 0.14), 0 2px 8px oklch(0.16 0.04 250 / 0.08);
+
+  --radius-cd: 13px;
+}
+
+.dark {
+  --background: oklch(0.098 0.022 250);
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.148 0.022 250);
+  --card-foreground: oklch(0.95 0 0);
+
+  --primary: oklch(0.82 0.12 220);
+  --primary-foreground: oklch(0.12 0.04 250);
+  --muted-foreground: oklch(0.68 0.02 250);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(0.255 0.024 250);
+
+  --bg-subtle: oklch(0.123 0.02 250);
+  --sun: oklch(0.82 0.16 85);
+  --sun-lo: oklch(0.82 0.16 85 / 0.16);
+  --sun-border: oklch(0.82 0.16 85 / 0.3);
+  --sun-text-on-lo: oklch(0.82 0.16 85);
+  --green: oklch(0.7 0.18 145);
+
+  --sky-surface: oklch(0.24 0.045 220);
+  --sky-border: oklch(0.32 0.05 220);
+
+  --shadow-cd-sm: 0 1px 3px oklch(0 0 0 / 0.2), 0 1px 6px oklch(0 0 0 / 0.14);
+  --shadow-cd: 0 2px 8px oklch(0 0 0 / 0.28), 0 4px 16px oklch(0 0 0 / 0.18);
+  --shadow-cd-md: 0 4px 16px oklch(0 0 0 / 0.35), 0 8px 24px oklch(0 0 0 / 0.22);
+  --shadow-cd-lg: 0 12px 40px oklch(0 0 0 / 0.52), 0 4px 12px oklch(0 0 0 / 0.28);
+
+  color-scheme: dark;
+}
+
+@keyframes si-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.52 0.18 145 / 0.5);
+  }
+  60% {
+    box-shadow: 0 0 0 6px transparent;
+  }
 }
 
 html,
