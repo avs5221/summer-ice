@@ -19,12 +19,13 @@ const links = [
 export function Nav() {
   const pathname = usePathname();
 
-  // "/" and "/register" each have their own sticky nav (site-nav.tsx),
-  // matching the "Summer Ice Landing" design — with a Register CTA and a
-  // link to sign in, not this wave-1 walk-through nav. Rendering both
-  // would stack two navs. The other three wave-1 pages (schedule, admin,
-  // session roster) haven't been restyled yet and still use this one.
-  if (pathname === "/" || pathname === "/register") return null;
+  // "/", "/register" and "/login" each have their own sticky nav
+  // (site-nav.tsx), matching the "Summer Ice Landing" design — with a
+  // Register CTA and a link to sign in, not this wave-1 walk-through nav.
+  // Rendering both would stack two navs. The remaining wave-1 pages
+  // (schedule, admin, session roster) haven't been restyled yet and
+  // still use this one.
+  if (pathname === "/" || pathname === "/register" || pathname === "/login") return null;
 
   return (
     <nav className="border-b border-gray-200 dark:border-gray-800">

@@ -991,3 +991,73 @@ carried over from the site-wide toggle.
 stale line in "both" mode specifically, or the picker interacting with a
 row that goes stale mid-pick) — the main paths above were driven for
 real, not an exhaustive matrix of every state × every mode.
+
+### 2026-08-10 — `/login` restyled from `Login.dc.html`; "Continue with Google" shipped disabled after testing it for real
+
+Implemented `Login.dc.html`: a centered auth card (logo, Google button,
+divider, email/password form, "no account yet" link) instead of the
+plain wave-1 form, a floating bottom-right theme toggle (this page's own
+revision never got moved to the small-inline style Landing/Register use —
+implemented as its own `variant="floating"` on `ThemeToggle` rather than
+forced to match), and a simple centered footer distinct from the
+richer one on `/`. `SiteNav` gained a third `active="login"` state —
+"Sign in" gets the same underlined-active treatment `active="home"`
+gives "Home", not a filled pill the way "Register" is (that one's also a
+CTA; this one's just a nav destination).
+
+**Tried wiring "Continue with Google" for real, then reversed that after
+testing it, not after reasoning about it.** The instinct was to reuse the
+"iDEAL or Wero" precedent — call the real `signInWithOAuth`, let it fail
+gracefully with whatever error Supabase returns for a disabled provider,
+since Google isn't configured on the project yet (`STATE.md`'s "Not
+built yet" list — needs Google Cloud Console setup no session here can
+do unattended) and the call needs no code change once it is. Screenshot
+evidence said otherwise: `signInWithOAuth` does a real top-level
+`window.location` navigation to Supabase's authorize endpoint, not a
+fetch this component's own `error` state can catch — even with
+`skipBrowserRedirect: true`, the "is this provider enabled" check only
+happens server-side once the browser actually requests that URL, so
+`data.url` still comes back with no local error either way, and
+navigating there (whether the library does it or this code does)
+replaces the whole page with Supabase's raw `{"code":400,"error_code":
+"validation_failed","msg":"Unsupported provider..."}`. That's a
+broken-looking result, not a graceful future-proofed one — the
+"future-proof it" instinct doesn't survive contact with how this
+specific API actually fails. Shipped disabled instead, with a `title`
+explaining why, wiring removed rather than left dead in an unreachable
+branch — see `google-signin-button.tsx`'s own comment for the full
+account, including that the raw-JSON screenshot is what caught it.
+
+**Other adaptations:**
+
+- "No account yet?" links to `/signup` (the real account-creation route,
+  full name + email + password + position + age attestation), not a
+  literal "Register for a slot" — the design's own copy conflates
+  signing up with registering for ice time, but this app keeps them
+  separate on purpose (`STATE.md`: "no signed-in registration flow
+  exists yet, just the API layer + a bare signup/login form"), and
+  `/register` doesn't create an account. Link text changed to "Create an
+  account →" to match what it actually does, following the design's
+  link *pattern* rather than its exact wording, the same as `Register:
+  "Waitlist →"` buttons elsewhere in this project stayed real rather
+  than decorative.
+- "Forgot?" stays an unwired `href="#"`, same treatment as Contact/
+  Privacy on the other pages — no password-reset flow exists yet, and
+  omitting the link entirely would be a bigger, uninstructed departure
+  from the design than leaving a placeholder.
+- The real `login` server action (`actions.ts`, unchanged) is exercised
+  through the new UI unmodified — restyled the form, not the auth logic,
+  same split as the register page's restyle.
+
+**Verified:** `npx tsc --noEmit` (root) and `eslint` clean (one real
+finding along the way: `@typescript-eslint/no-misused-promises` on
+passing an async handler straight to `onClick`, fixed with a wrapping
+arrow rather than suppressed). Headless Chromium: light and dark mode
+(floating toggle), a real bad-credentials submission against the actual
+Supabase Auth project — server action genuinely round-tripped, "Invalid
+login credentials" rendered in the new styled error state, not mocked —
+confirmed the Google button is `disabled` via `isDisabled()` rather than
+just visually styled to look it, a 420px mobile viewport, and confirmed
+`/` still shows "Sign in" correctly *inactive* and "Register" in its
+default (non-primary) color, i.e. the new `active="login"` nav state
+didn't leak into other pages. Zero console errors.

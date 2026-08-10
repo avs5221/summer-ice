@@ -15,7 +15,10 @@ import styles from "./page.module.css";
 // (a neutral CTA) everywhere except the register page itself, where it
 // switches to `--primary` to double as that page's "you are here" marker
 // — matching the source design exactly, not a convention invented here.
-export function SiteNav({ active }: { active: "home" | "register" }) {
+// "Sign in" gets the same underlined-active treatment as "Home" when
+// `active === "login"` (per Login.dc.html), rather than a filled pill —
+// it's a plain nav destination there, not also a CTA the way Register is.
+export function SiteNav({ active }: { active: "home" | "register" | "login" }) {
   return (
     <nav className={styles.nav}>
       <div className={styles.navInner}>
@@ -32,7 +35,7 @@ export function SiteNav({ active }: { active: "home" | "register" }) {
           <Link href="/#how" className={styles.navLink}>
             How it works
           </Link>
-          <Link href="/login" className={styles.navLink}>
+          <Link href="/login" className={active === "login" ? styles.navLinkActive : styles.navLink}>
             Sign in
           </Link>
           <Link href="/register" className={active === "register" ? styles.registerBtnActive : styles.registerBtn}>

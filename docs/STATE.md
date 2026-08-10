@@ -73,27 +73,45 @@ contention demo against both a held and an unheld slot — confirming the
 420px mobile), zero console errors throughout. Full account in
 `DECISIONS.md`.
 
+**Same day, sixth pass:** `/login` restyled from the design project's
+`Login.dc.html` — centered auth card, floating theme toggle
+(`ThemeToggle` gained a `variant="floating"` for this page's own
+un-migrated revision of it), simple centered footer. New:
+`app/login/login.module.css`, `app/login/google-signin-button.tsx`.
+Tried wiring "Continue with Google" to a real `signInWithOAuth` call
+first (Google isn't an enabled provider on the Supabase project yet);
+tested it against the real disabled-provider case rather than assuming
+it would fail gracefully, found it doesn't (a real browser navigation to
+Supabase's raw JSON error, uncatchable in JS even with
+`skipBrowserRedirect`), and shipped it disabled instead. The real
+email/password `login` server action is unchanged and was exercised
+through the new UI with a genuine bad-credentials attempt against the
+live Supabase Auth project. `npx tsc --noEmit` + `eslint` clean (one real
+lint finding fixed: an async handler passed straight to `onClick`);
+headless-Chromium pass — light/dark, mobile, zero console errors, and
+confirmed the new `active="login"` nav state doesn't leak onto other
+pages. Full account in `DECISIONS.md`.
+
 ---
 
 ## Last commit
 
 This file is regenerated as part of the same commit it describes, so it
 can't name its own hash in advance — check `git log -1`. That commit
-restyles `/register` from the design project's `Register.dc.html` — new
-row-state schedule table, role-pill group, sticky summary bar — on top
-of the existing fake-data hold/waitlist/contention logic (kept, not
-replaced), plus a shared `site-nav.tsx` now used by both `/` and
-`/register`. The commit before it re-synced the homepage (`/`) against
-changes made to the design project after the initial import: nav
-restructured (Home/How it works/Sign in/Register), theme toggle moved
-from a floating button into the footer. The commit before *that* was a
-same-session fix: swapped in the real `logo-circle.png` (an earlier
-commit shipped a truncated one — see `DECISIONS.md`) and reverted a copy
-correction ("iDEAL" → back to "iDEAL or Wero," per Michael). The commit
-before *that* did the original landing-page work: restyled the homepage
-from the design project — new nav/hero/schedule-table/footer, a
-site-wide class-based dark-mode toggle, still reading real live data
-exactly as before. The commit before *that* landed the first slice of
+restyles `/login` from the design project's `Login.dc.html` — centered
+auth card, floating theme toggle, "Continue with Google" shipped
+disabled after testing confirmed it can't fail gracefully yet (see
+`DECISIONS.md`). Same design-import session, each on its own commit:
+`/register` restyled from `Register.dc.html` (row-state schedule table
+on top of the existing fake-data hold/waitlist/contention logic, kept
+rather than replaced) → the homepage (`/`) re-synced against changes
+made to the design project after its initial import (nav restructured,
+theme toggle moved into the footer) → a fix swapping in the real
+`logo-circle.png` (an earlier commit shipped a truncated one) and
+reverting an "iDEAL" copy correction per Michael → the original
+landing-page restyle from `Summer Ice Landing.dc.html`. `site-nav.tsx`
+and `theme-toggle.tsx` are now shared across all three restyled pages.
+Before all of that, a separate session landed the first slice of
 build-order phase 4 (`ARCHITECTURE.md` §7): password sign-up/sign-in/
 sign-out via Supabase Auth, session handling (`@supabase/ssr`), the
 `credentials`/`roles` provisioning and lookup layer in `packages/core`,
@@ -107,7 +125,7 @@ identity, closing the security gap they shipped with on purpose.
 | `packages/db` | Drizzle schema (27 tables), 7 migrations, seed scripts, env/guard-host scripts, realtime health check, `dbDirectPooled(max)`. No `outbox` table yet. **Found this session:** the `sessions` table (`token_hash`, `revoked_at`) is a self-hosted-plan relic nothing uses — Supabase Auth's own JWT/cookie session is authoritative. Left migrated, not dropped; see `ARCHITECTURE.md` §7 and `DOMAIN-MODEL.md` §2 |
 | `packages/core` | `slot-fill.ts`, `capacity-lock.ts`, `registration.ts`, `waitlist.ts` (season-registration concurrency core, phase 3, done). **New:** `identity.ts` — `ensurePersonForAuthUser` (the `credentials` insert on first sign-in, idempotent), `getPersonForAuthSubject`, `getPersonRoles`, `personHasRole`. 18 integration tests total (4 new), plus the on-demand `load-test/season-registration.ts` harness. No attendance or extras-claim functions; no accept-offer function; no dependent-promotion function |
 | `packages/contracts` | `registration.ts` (unchanged in shape except `personId` removed from `holdCartRequestSchema` — see below) plus **new** `identity.ts` (`signupRequestSchema`, `loginRequestSchema`) |
-| `apps/web` | Registration API routes (`app/api/registrations/**`) call `~/lib/auth`'s `requireCurrentPerson`/`requireOwnerOrRole` instead of trusting a body-supplied `personId` — **the hold route's request schema no longer accepts `personId` at all**, it's taken from the session. `app/lib/supabase/server.ts` + `browser.ts` (the `@supabase/ssr` client factories — distinct from the pre-existing `app/lib/supabase-client.ts`, which stays the public, unauthenticated Realtime-only client, on purpose), `proxy.ts` (Next 16's renamed `middleware.ts` — session-cookie refresh only, no redirect gating), `app/lib/auth.ts` (`getCurrentPerson`/`requireCurrentPerson`/`requireOwnerOrRole`), `app/signup/`, `app/login/`, `app/lib/auth-actions.ts` (logout). `/schedule` and `/admin` are still fake-data, wave-1, unstyled. **This session:** `/` and `/register` both restyled from the "Summer Ice Landing" Claude Design project, sharing `app/site-nav.tsx`. `/` — still `force-dynamic`, still reads `getSlotFillOverview()` for real, now a real nav/hero/stat-band/schedule-table/footer instead of a bullet list (`app/page.module.css`, `app/theme-toggle.tsx`, `app/landing-slot-row.tsx`, replacing the deleted `app/slot-fill-row.tsx`). `/register` — still fake-data (`register-client.tsx` fully rewritten: role-state schedule table, sticky summary bar, `app/register/register.module.css`), but its existing hold/waitlist/contention-demo logic was kept and extended (real "stale" row state), not thrown out for the design's own inert static mock. `app/components/nav.tsx` hides itself on both `/` and `/register` (each has its own `SiteNav`). `globals.css` gained the design's OKLCH token set and switched `dark:` to class strategy site-wide (`@custom-variant dark`); `layout.tsx` gained the theme-init inline script + `suppressHydrationWarning` on `<html>` that makes that safe — see `DECISIONS.md` |
+| `apps/web` | Registration API routes (`app/api/registrations/**`) call `~/lib/auth`'s `requireCurrentPerson`/`requireOwnerOrRole` instead of trusting a body-supplied `personId` — **the hold route's request schema no longer accepts `personId` at all**, it's taken from the session. `app/lib/supabase/server.ts` + `browser.ts` (the `@supabase/ssr` client factories — distinct from the pre-existing `app/lib/supabase-client.ts`, which stays the public, unauthenticated Realtime-only client, on purpose), `proxy.ts` (Next 16's renamed `middleware.ts` — session-cookie refresh only, no redirect gating), `app/lib/auth.ts` (`getCurrentPerson`/`requireCurrentPerson`/`requireOwnerOrRole`), `app/signup/`, `app/lib/auth-actions.ts` (logout). `/schedule`, `/admin` and `/signup` are still fake-data/wave-1, unstyled. **This session:** `/`, `/register` and `/login` all restyled from the "Summer Ice Landing" Claude Design project, sharing `app/site-nav.tsx` and `app/theme-toggle.tsx`. `/` — still `force-dynamic`, still reads `getSlotFillOverview()` for real, now a real nav/hero/stat-band/schedule-table/footer instead of a bullet list (`app/page.module.css`, `app/landing-slot-row.tsx`, replacing the deleted `app/slot-fill-row.tsx`). `/register` — still fake-data (`register-client.tsx` fully rewritten: role-state schedule table, sticky summary bar, `app/register/register.module.css`), but its existing hold/waitlist/contention-demo logic was kept and extended (real "stale" row state), not thrown out for the design's own inert static mock. `/login` — the real `login` server action unchanged, restyled onto a centered auth card (`app/login/login.module.css`); "Continue with Google" (`app/login/google-signin-button.tsx`) is present but `disabled` — Google isn't an enabled Supabase provider yet and testing confirmed `signInWithOAuth` can't fail gracefully in that state (real browser navigation to a raw JSON error, not a catchable JS error). `app/components/nav.tsx` hides itself on all three (each has its own `SiteNav`, now with `active: "home" \| "register" \| "login"`). `globals.css` gained the design's OKLCH token set and switched `dark:` to class strategy site-wide (`@custom-variant dark`); `layout.tsx` gained the theme-init inline script + `suppressHydrationWarning` on `<html>` that makes that safe — see `DECISIONS.md` |
 | `apps/mobile` | Does not exist — not scaffolded, per plan (Phase 4/12) |
 
 ### The registration routes' security gap is closed for the case tested
@@ -187,10 +205,11 @@ What has genuinely been proven, versus what merely compiles:
 - **The registration routes' auth check, against the real request pipeline (not just unit tests).** `curl -X POST /api/registrations` with no session cookie → `401 {"error":"authentication required"}` (previously: 201, since `personId` was trusted from the body). Same check against `/api/registrations/:id/release` and `/decline` with a **real** registration id (so the check reaches the ownership branch, not just "not found") → also 401. Confirms the gap flagged in the previous session's `STATE.md` is actually closed at the HTTP layer, not just in code that looks right.
 - **The restyled homepage (`/`), in a real browser, light and dark, desktop and mobile.** Headless Chromium (Playwright, run via the `apt-get download`/`dpkg-deb -x`/`LD_LIBRARY_PATH` no-root workaround) against a running dev server reading the real local database: screenshotted light mode, clicked the new theme toggle and screenshotted dark mode (confirmed `localStorage`-persisted across a navigation to `/register`, which still renders the original plain `Nav`, not the landing one), and a 420px viewport confirming the hero/stat-band/schedule-table media queries reflow. Zero console errors — but only after fixing one the first pass caught: a hydration mismatch from the theme-init script, invisible to `curl`/`tsc`/`eslint`. `curl` against the same running server independently confirmed the server-rendered HTML: 10 schedule rows in schedule order, "10 of 10 slots still have room" (correct for the empty local `registrations` table), 10 "Claim →" / 0 "Join waitlist" links.
 - **Supabase Auth itself is reachable and correctly configured for this project.** A direct `supabase.auth.signUp()` call (plain `@supabase/supabase-js`, the real project, not local) succeeded and returned the expected shape — confirmed email confirmation is **required** for this project (`session: null` on signup, `email_confirmed_at` unset), which is real, useful information: it means `apps/web/app/signup/actions.ts`'s "if `data.session`, go home; otherwise, check-your-email" branch is the branch that actually fires in practice, not a hypothetical. Test user deleted from `auth.users` afterward via the Supabase MCP.
+- **An actual browser driving the login form — resolved, for login specifically.** A later session got headless Chromium working (see the live-fill and landing-page entries above and in `DECISIONS.md` for the environment workaround) and used it here too: submitted real bad credentials against `/login`'s Server Action, watched the `login` server action genuinely round-trip to the live Supabase Auth project and return "Invalid login credentials," rendered in the UI's styled error state — not mocked, not just "the page renders." Signup itself (below) is still unverified this way.
 
 **Not verified / not built at all:**
 
-- **An actual browser driving the signup/login forms.** Next's Server Actions use React's RSC action-reference wire protocol, not a plain form POST — not curl-able the way the earlier `app/api/*` routes were. No browser-automation tool (Playwright/Chromium) was set up this session; the previous session's headless-Chromium environment workaround (documented in `DECISIONS.md`, 2026-08-09/10) didn't persist into this one. What's verified instead: the pages render (200), the underlying Supabase Auth call works end-to-end (above), and the DB-side provisioning logic is proven by real-Postgres tests (above) — but nobody has watched a browser actually submit the signup form and land on a real session yet.
+- **An actual browser driving the signup form specifically.** (Login is now verified this way — see above.) Next's Server Actions use React's RSC action-reference wire protocol, not a plain form POST — not curl-able the way the earlier `app/api/*` routes were. What's verified instead for signup: the page renders (200), the underlying Supabase Auth call works end-to-end (above), and the DB-side provisioning logic is proven by real-Postgres tests (above) — but nobody has watched a browser actually submit the signup form and land on a real session yet.
 - Google, Apple OAuth providers — password only. See `ARCHITECTURE.md` §7's "Not built yet" list for the full remainder (dependent promotion, guardian-acts-for-dependent authorization, email one-tap actions, multi-provider identity merging).
 - Accepting a waitlist offer — creating the one-line `registration_carts` row on acceptance is a payment-flow function belonging with `holdCart`/`confirmCart`, not built this session, though auth existing now removes the reason it was previously deferred.
 - No extras/claims functions (`claims` table, `ice_session_capacities` locking) — phase 11.

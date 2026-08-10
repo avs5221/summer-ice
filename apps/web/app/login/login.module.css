@@ -1,0 +1,203 @@
+/* Login page — translated from the "Summer Ice Landing" Claude Design
+ * project (Login.dc.html), the same approach as the landing/register
+ * pages: real classes + media queries instead of the design's inline
+ * styles. Shared tokens (`.page`) come from ../page.module.css.
+ */
+
+.shell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 28px;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-cd);
+  box-shadow: var(--shadow-cd-md);
+  padding: 32px 30px 28px;
+}
+
+.cardBrand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 22px;
+}
+
+.cardWordmark {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--muted-foreground);
+  margin-bottom: 22px;
+}
+
+.googleBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.googleBtn:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+
+.googleBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.dividerText {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.forgotLink {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.input {
+  padding: 11px 13px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--input);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 14px;
+  font-family: var(--font-sans);
+}
+
+.input:focus {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.error {
+  border-radius: var(--radius);
+  border: 1.5px solid var(--destructive);
+  background: oklch(0.577 0.245 27.325 / 0.07);
+  color: var(--destructive);
+  padding: 9px 12px;
+  font-size: 13px;
+}
+
+.submitBtn {
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 0;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.submitBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.switchLine {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.switchLink {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ─── Page footer ──────────────────────────────────────────────────── */
+/* Simpler than the landing/register footer — centered links + a single
+ * copyright line, no logo/brand repeated, per Login.dc.html. */
+
+.footer {
+  border-top: 1px solid var(--border);
+  background: var(--card);
+}
+
+.footerInner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 18px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+  flex-wrap: wrap;
+}
