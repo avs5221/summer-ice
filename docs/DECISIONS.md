@@ -204,3 +204,57 @@ application bug, not an RLS error. That moment needs a deliberate choice
 (write real policies, or keep browser clients off direct table access
 entirely) rather than a debugging session that rediscovers this paragraph
 the hard way.
+
+---
+
+### 2026-08-10 — Live fill diagnosed end-to-end: mechanism was correct, not observable
+
+Reported symptom: an UPDATE to `slot_capacities` on the deployed site produces
+rows in `realtime.messages` and the browser opens a WebSocket, but the
+homepage numbers never change. The working theory going in was a
+topic/event/private mismatch between the trigger
+(`0005_live_fill_broadcast.sql`) and the client (`use-live-fill.ts`).
+
+Directly compared both sides instead of guessing:
+
+- Queried `realtime.messages` on the live project: `topic =
+  'slot-fill:<slots.id>'`, `event = 'fill'`, `private = false`.
+- Read the trigger: constructs the same topic from `slots.id` (via
+  `registrations.slot_id` / `slot_capacities.slot_id`, both FK'd to
+  `slots.id`), same event name, `realtime.send(..., false)`.
+- Read the client: subscribes to `slot-fill:${slotId}` where `slotId` is
+  `getSlotFillOverview`'s `slot_id` — also `slots.id`, not
+  `slot_capacities.id` — listens for `"fill"`, passes `{ config: { private:
+  false } }`.
+- All three — topic, event, private — matched exactly. No mismatch found.
+
+Also checked, since both are real ways this exact symptom happens on this
+project per `CLAUDE.md`: the live Vercel deployment (`dpl_4ATT2rXBJXbqGucPZ8nbyANz8fRV`,
+READY) was built from `508648c`, the actual current `origin/main` HEAD — not
+stale. And RLS-enabled-with-no-policies (see above) doesn't apply here either:
+that only gates *private* channels; this one is deliberately public.
+
+Since code comparison found nothing, verified the mechanism empirically
+instead of continuing to read code: a standalone Node script using the same
+`@supabase/supabase-js` client, same URL/publishable key, same topic
+construction, subscribed and reached `SUBSCRIBED`; a real `UPDATE` on
+`slot_capacities` (via the Supabase MCP `execute_sql` tool) then arrived at
+that script as a `broadcast`/`fill` message within seconds. The full pipeline
+— trigger → `realtime.send` → `realtime.messages` → logical replication →
+Phoenix channel broadcast → `supabase-js` client callback — works exactly as
+designed.
+
+**Conclusion: there was no code bug to fix.** What was genuinely missing was
+observability — nothing in `use-live-fill.ts` logged subscribe status or
+message arrival, so "working but never watched" and "silently broken" were
+indistinguishable from the browser. Added unconditional (not
+`NODE_ENV`-gated — this needs to work from the deployed site, not just local
+dev) `console.debug` calls on subscription status and every message
+received. This does not change behaviour for end users, who don't have
+devtools open; it exists so the next time this symptom is reported, the
+console immediately shows whether a message ever arrived, rather than
+requiring another live database diff to find out.
+
+**Still not verified:** an actual browser has still never watched `/`
+update live. The diagnosis is as far as it can go without one — see
+`STATE.md`'s "Verified" section for exactly what confirming this requires.

@@ -29,6 +29,17 @@
 // again after a reconnect, callers should re-fetch and remount rather than
 // assume continuity, per the same principle the old LISTEN/NOTIFY design
 // documented. This hook only ever layers live updates on top of that.
+//
+// 2026-08-10: exercised end-to-end for the first time. Diagnosis (see
+// docs/STATE.md and docs/DECISIONS.md for the full account) compared the
+// deployed trigger's broadcast against this hook's subscription directly —
+// topic string, event name and the private/public flag all matched exactly,
+// and a standalone script using this same supabase-js client received a
+// live broadcast after a real UPDATE. The mechanism was never actually
+// broken; it had just never been watched. What WAS missing is what this
+// hook logs to the console now — with no visibility into subscribe status
+// or message arrival, "working but unobserved" and "silently broken" look
+// identical from the browser.
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "./supabase-client";
 
@@ -80,14 +91,30 @@ export function useLiveFill(slotId: string, initialFill: LiveFill): LiveFill {
   }
 
   useEffect(() => {
+    const topic = `slot-fill:${slotId}`;
     const supabase = createSupabaseBrowserClient();
     const channel = supabase
-      .channel(`slot-fill:${slotId}`, { config: { private: false } })
+      .channel(topic, { config: { private: false } })
       .on("broadcast", { event: "fill" }, ({ payload }: { payload: unknown }) => {
-        if (!isBroadcastPayload(payload) || payload.slotId !== slotId) return;
+        // Deliberately unconditional, not NODE_ENV-gated: this is the one
+        // piece of this app that fails *silently* by construction — a
+        // topic/event mismatch produces no error anywhere, just a page that
+        // never updates (see the 2026-08-10 session that had to diff
+        // realtime.messages against this file by hand to find out whether
+        // delivery was even reaching the browser). A console line costs
+        // nothing for real users, who don't have devtools open, and is the
+        // fastest way to answer "is a message arriving at all" from the
+        // deployed site without a database console.
+        console.debug(`[live-fill] message on ${topic}:`, payload);
+        if (!isBroadcastPayload(payload) || payload.slotId !== slotId) {
+          console.debug(`[live-fill] ignored — payload failed the shape/slotId check`, payload);
+          return;
+        }
         setFill({ skater: payload.skater, goalie: payload.goalie });
       })
-      .subscribe();
+      .subscribe((status, err) => {
+        console.debug(`[live-fill] ${topic} subscription status:`, status, err ?? "");
+      });
 
     // Leaked channels are the leading cause of hitting connection limits —
     // this cleanup is not optional. Every mount must pair with exactly one

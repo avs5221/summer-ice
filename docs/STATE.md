@@ -4,17 +4,21 @@ Mechanical and factual. Regenerated at the end of every session per `CLAUDE.md`'
 session ritual. If this contradicts what a session prompt assumes, the prompt is
 probably stale — stop and check, don't work around it.
 
-**Last verified:** 2026-08-10, by reading the repo, querying both databases, and
-running `tsc --noEmit` directly — not written from memory or assumption.
+**Last verified:** 2026-08-10, by reading the repo, querying both databases,
+running `tsc --noEmit` directly, and — new this session — running a
+standalone script against the real Supabase Realtime endpoint to observe an
+actual broadcast arrive, not just reading the code that should produce one.
 
 ---
 
 ## Last commit
 
-`2f17f99` — "docs: add index, state and decisions conventions" — 2026-08-10.
-Two commits ahead of `origin/main` (unpushed). This session's own work (seeding
-Supabase, documenting the RLS posture) lands in the commit right after this
-file is regenerated — check `git log -1` if you need the exact hash.
+`508648c` — "chore: seed ice_sessions on supabase, document rls posture" —
+2026-08-10, matches `origin/main` (this repo pushes promptly; Vercel's latest
+production deployment is built from this exact commit — confirmed via the
+Vercel API, not assumed). This session's own work (live-fill diagnosis,
+diagnostic logging) lands in the commit right after this file is
+regenerated — check `git log -1` if you need the exact hash.
 
 ## What exists, per package
 
@@ -66,7 +70,7 @@ What has genuinely been proven, versus what merely compiles:
 - **Compiles.** `npx tsc --noEmit`, project-wide root check: 0 errors, as of this commit.
 - **Schema constraints, against a live database.** Migrations have been applied to both a local and the real Supabase Postgres; every table, FK and check constraint exists as designed in both.
 - **`uuidv7()` shim correctness.** Per `ARCHITECTURE.md` §5, verified with 5,000 generated values against a real Postgres 17 container and cross-checked against Postgres 18's native builtin — not by inspection.
-- **Live fill — trigger and WebSocket layer only.** The Supabase Realtime broadcast trigger (`0005_live_fill_broadcast.sql`) and the browser-side subscription hook (`use-live-fill.ts`) exist and are wired up. **This has never been exercised end-to-end through the actual homepage in a browser** — no one has opened `/`, changed a registration row, and watched the number update live. The trigger firing, the broadcast arriving, and the hook updating have each been reasoned about and code-reviewed, not observed together.
+- **Live fill — the transport mechanism, proven; the actual homepage in a browser, still not.** 2026-08-10: diagnosed a report that the deployed homepage's numbers never update live. Directly compared the trigger's broadcast (queried from `realtime.messages` on the live project) against the client's subscription (`use-live-fill.ts`) — topic (`slot-fill:<slots.id>`, both sides), event name (`fill`, both sides), and public/private (`false`, both sides) all matched exactly; no mismatch existed. Confirmed the live Vercel deployment was built from the current `origin/main` HEAD, ruling out the staleness trap `CLAUDE.md` warns about. With code comparison exhausted, verified empirically instead: a standalone Node script using the same `@supabase/supabase-js` client, URL and publishable key subscribed to the same channel and received a real broadcast within seconds of an `UPDATE` on `slot_capacities`. **The full pipeline — trigger → `realtime.send` → replication → channel broadcast → client callback — genuinely works.** See `DECISIONS.md` for the full account. What was missing was observability, now fixed: `use-live-fill.ts` logs subscribe status and every message via `console.debug`, unconditionally (works on the deployed site, not just local dev). **What remains unverified is narrower than before but still real: no one has opened the actual deployed `/` in a browser and watched a number change.** To confirm: open the deployed `/` with devtools open, look for `[live-fill] slot-fill:<uuid> subscription status: SUBSCRIBED` (one per visible slot) shortly after load, then change any `slot_capacities.capacity` on the live project — the console should log `[live-fill] message on slot-fill:<uuid>: {...}` immediately and the row's number should update with no refresh.
 - **Homepage (`/`) reads real data.** Confirmed `force-dynamic`, confirmed it queries `dbPooled()` and `getSlotFillOverview` rather than fake data.
 - **`getSlotFillOverview` against the real Supabase project.** Run directly (not through the web app) after seeding: returns all 10 rows, each with a correct next-upcoming `ice_session`, matching the seeded schedule and today's date. This confirms the data and the query are right; it is **not** the same as the browser-level live-fill check above, which is still unproven end-to-end.
 
