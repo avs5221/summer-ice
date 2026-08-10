@@ -710,10 +710,17 @@ the live-fill subscription (`useLiveFill`) moved into a new
   repo's real routes (`/login`, `/register`) instead of the design's `#`
   placeholders — those pages exist; only "Contact" and "Privacy" stay
   `#`, since nothing exists there yet either.
-- Copy correction: the design's "How it works" step said "iDEAL or Wero."
-  `DOMAIN-MODEL.md` §6 only documents Mollie/iDEAL now, with SEPA Direct
-  Debit as an explicit phase-two item — nothing supports Wero. Changed to
-  "One iDEAL payment," a claim this repo can actually back.
+- Copy: the design's "How it works" step said "iDEAL or Wero." First
+  changed to "One iDEAL payment" on the grounds that `DOMAIN-MODEL.md` §6
+  only documents Mollie/iDEAL, with SEPA Direct Debit as an explicit
+  phase-two item — nothing in the repo's own docs supports Wero. Reverted
+  same session, per Michael directly: Wero is iDEAL's own succession path
+  (Currence, iDEAL's operator, is part of the EPI/Wero coalition), and the
+  copy is deliberately future-proofed rather than describing what's wired
+  today. Kept as "One iDEAL or Wero payment." `DOMAIN-MODEL.md` §6 itself
+  is unchanged — it still only documents Mollie/iDEAL as integrated — so
+  this is landing-page copy running slightly ahead of the payments
+  integration on purpose, not a claim that Wero is implemented.
 
 **Site-wide side effect, not scoped to just this page:** dark mode was
 previously pure `prefers-color-scheme`, no manual override anywhere. The
@@ -777,3 +784,64 @@ specifically — `landing-slot-row.tsx` reuses the same `useLiveFill` hook
 already end-to-end proven (see the 2026-08-10 live-fill entries above)
 verbatim, just restyled, so this is judged low-risk rather than
 re-proven from scratch this session.
+
+### 2026-08-10 — `logo-circle.png` shipped truncated: a real cap in the design-import tool, not a rendering fluke
+
+Michael reported the logo "only 75% loading" after the session above
+shipped. Root-caused rather than re-guessed: `DesignSync`'s `get_file`
+caps binary reads at 256 KiB — undocumented in its own `truncated` field,
+which stayed `false` on a file that was, provably, cut mid-stream. Walked
+the PNG's chunk structure by hand: no `IEND` chunk, and the final `IDAT`
+chunk's declared length ran 317+ bytes past the end of the file — not a
+guess, a byte-for-byte confirmation of truncation. The original asset
+(768×768) sat just over the cap; the 256 KiB figure survives as a base64
+character count (262144 = 256 × 1024) that decodes to exactly the
+on-disk byte count (196608) — the cap is on the wire encoding, not the
+raw file.
+
+**Why it didn't show up in this session's own browser-verification
+pass:** this sandbox has no `sharp`, so `next/image`'s optimizer route
+fell back to proxying the corrupt bytes unmodified rather than
+re-encoding them — confirmed by requesting `/_next/image` at seven
+different widths and getting the identical untouched 196608-byte file
+back every time. A real build (Vercel's, or any environment with `sharp`
+installed) actually decodes and re-encodes on the server, which is where
+a truncated source stops being silently tolerated. Recorded as a gap in
+the earlier "zero console errors" verification claim: that pass proved
+hydration was clean, not that every asset was intact — a distinction
+worth remembering the next time "the browser check passed" gets read as
+"nothing is wrong."
+
+**No path existed to fetch the rest of the bytes.** `get_file` has no
+offset/range parameter; `ListMcpResourcesTool` against every connected
+MCP server turned up no resource for the design project at all (it isn't
+exposed as a standard MCP resource, just this bespoke tool); `.thumbnail`
+in the project is a single whole-canvas preview, not a per-asset one.
+Asked Michael directly rather than silently shipping a hand-redrawn
+substitute for his brand mark — the options put to him were: attach the
+real file, let me recreate it as SVG, or re-export a smaller original
+from the design project. He attached the file directly.
+
+**The attachment wasn't retrievable as inline pasted bytes** — no tool
+here reads a pasted-image content block directly to disk. Found it
+instead by searching the filesystem for image files newer than the
+session's own recent output (`find ... -newer <a screenshot from minutes
+earlier>`), which surfaced two candidates on the Windows side of this
+WSL environment (`/mnt/c/Users/Michael/Downloads/`): one an exact
+byte-for-byte match of the *already-truncated* 196608-byte file (almost
+certainly a save-image-as of the broken version being served, not
+useful), and `summericelogocircle1-300x300.png` (34682 bytes, newer,
+differently named) — walked its chunk structure the same way as the
+original truncation diagnosis, confirmed a clean `IEND` and the byte walk
+landing exactly on the file's end, then used that one.
+
+**Verified:** the replacement file is a real, complete PNG (chunk walk
+terminates cleanly at `IEND`, matches the file length exactly) and
+visually matches the logo Michael showed directly. Re-ran the same
+browser/screenshot pass from the earlier entry (same headless-Chromium
+setup, still live from this session) rather than assuming a same-shape
+file swap was risk-free: zero console errors, and the screenshot shows
+the real logo — not the placeholder-shaped-but-corrupt one — rendering
+cleanly in the nav, hero and footer. The Wero-copy revert (previous
+entry) was screenshotted in the same pass, confirming both changes
+landed together correctly.

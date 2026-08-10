@@ -203,7 +203,7 @@ export default async function Home() {
               <div className={styles.howNum}>02</div>
               <h3 className={styles.howTitle}>Pay once, for the season</h3>
               <p className={styles.howDesc}>
-                One iDEAL payment covers the whole season. Your spot is held for ten minutes while you pay.
+                One iDEAL or Wero payment covers the whole season. Your spot is held for ten minutes while you pay.
               </p>
             </div>
             <div className={styles.howCard}>

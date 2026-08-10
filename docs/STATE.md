@@ -33,19 +33,34 @@ dark mode after clicking the new toggle, a 420px mobile viewport, and
 fixed one real bug this way — a hydration mismatch from the new
 theme-init script — that `curl`/`tsc`/`eslint` all missed.
 
+**Same day, third pass:** `apps/web/public/logo-circle.png` shipped
+truncated — a real 256 KiB read cap in the `DesignSync` import tool cut
+the original mid-`IDAT`, invisible to the checks above because this
+sandbox has no `sharp` to actually re-encode it. Michael attached the
+correct file directly; replaced, PNG structure verified byte-for-byte
+(clean `IEND`), and the same headless-Chromium pass re-run against the
+new file plus a reverted copy correction ("iDEAL" → "iDEAL or Wero," per
+Michael — Wero is iDEAL's own succession path, not the repo's earlier
+guess). Zero console errors, logo confirmed rendering correctly in the
+screenshot. Full account in `DECISIONS.md`.
+
 ---
 
 ## Last commit
 
 This file is regenerated as part of the same commit it describes, so it
-can't name its own hash in advance — check `git log -1`. That commit
-restyles the homepage (`/`) from the "Summer Ice Landing" Claude Design
-project — new nav/hero/schedule-table/footer, a site-wide class-based
-dark-mode toggle, still reading real live data exactly as before. The
-previous commit landed the first slice of build-order phase 4
-(`ARCHITECTURE.md` §7): password sign-up/sign-in/sign-out via Supabase
-Auth, session handling (`@supabase/ssr`), the `credentials`/`roles`
-provisioning and lookup layer in `packages/core`, and the three
+can't name its own hash in advance — check `git log -1`. That commit is a
+same-session fix on top of the one before it: swaps in the real
+`logo-circle.png` (the previous commit's shipped a truncated one — see
+`DECISIONS.md`) and reverts a copy correction ("iDEAL" → back to "iDEAL
+or Wero," per Michael). The commit before it did the actual landing-page
+work: restyled the homepage (`/`) from the "Summer Ice Landing" Claude
+Design project — new nav/hero/schedule-table/footer, a site-wide
+class-based dark-mode toggle, still reading real live data exactly as
+before. The commit before *that* landed the first slice of build-order
+phase 4 (`ARCHITECTURE.md` §7): password sign-up/sign-in/sign-out via
+Supabase Auth, session handling (`@supabase/ssr`), the `credentials`/
+`roles` provisioning and lookup layer in `packages/core`, and the three
 season-registration routes rewired to real session identity, closing the
 security gap they shipped with on purpose.
 
