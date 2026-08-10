@@ -22,7 +22,11 @@ import styles from "./page.module.css";
 // four destinations — Contact.dc.html's own nav has no active item at
 // all (Contact isn't a top-nav link, only a footer one), so omitting it
 // leaves every link in its plain, inactive state, matching that design.
-export function SiteNav({ active }: { active?: "home" | "register" | "login" }) {
+// "How it works" now links to its own real page (`/how-it-works`), not
+// the landing page's `/#how` teaser anchor — that was a deliberate
+// stand-in while the dedicated page didn't exist yet (see DECISIONS.md),
+// corrected now that it does.
+export function SiteNav({ active }: { active?: "home" | "register" | "login" | "how" }) {
   return (
     <nav className={styles.nav}>
       <div className={styles.navInner}>
@@ -36,7 +40,7 @@ export function SiteNav({ active }: { active?: "home" | "register" | "login" }) 
           <Link href="/" className={active === "home" ? styles.navLinkActive : styles.navLink}>
             Home
           </Link>
-          <Link href="/#how" className={styles.navLink}>
+          <Link href="/how-it-works" className={active === "how" ? styles.navLinkActive : styles.navLink}>
             How it works
           </Link>
           <Link href="/login" className={active === "login" ? styles.navLinkActive : styles.navLink}>

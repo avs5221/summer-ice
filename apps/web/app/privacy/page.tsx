@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { SiteFooter } from "../site-footer";
 import { SiteNav } from "../site-nav";
 import { ThemeToggle } from "../theme-toggle";
-import { TocNav, type TocEntry } from "./toc-nav";
+import { TocNav, type TocEntry } from "../toc-nav";
 import shared from "../page.module.css";
 import styles from "./privacy.module.css";
 

@@ -1191,3 +1191,67 @@ screenshot instead of Playwright's `fullPage` stitching, confirmed
 clean, and closed as the same known `position: sticky` capture artifact
 noted earlier this session (now confirmed twice, not just asserted).
 Zero console errors.
+
+### 2026-08-10 — `/how-it-works` implemented from `How It Works.dc.html`; `TocNav` promoted to shared on its second real use
+
+Implemented `How It Works.dc.html`: the same header-band/sticky-TOC/
+numbered-sections shape as `/privacy` (same source design pattern —
+architecturally identical), 7 sections on slots, roles, registering and
+paying, missed weeks, waitlists/drop-ins, skills training, and level,
+plus a closing CTA row ("Sign me up →" / "See the schedule").
+
+**`toc-nav.tsx` and its TOC-specific CSS classes moved from
+`app/privacy/` to shared (`app/toc-nav.tsx`, TOC classes into
+`page.module.css`)** — this is a second real use of identical scroll-spy
+*behavior*, not just similar-looking markup, the same bar `SiteNav` and
+`SiteFooter` were held to at their own second uses. Confirmed the two
+source designs' TOC markup is pixel-identical before sharing it (not
+assumed from "they look similar"). **Deliberately did not** also merge
+the surrounding numbered-section styling (`.section`, `.sectionNum`,
+`.row`, etc.) into one shared module — checked the two designs' inline
+styles side by side first and found a real difference: Privacy's section
+numeral is 24px, How It Works' is 21px (matching its own h2 exactly). A
+forced shared class would have silently made one of them wrong. Kept
+`how-it-works.module.css` self-contained for that styling, consistent
+with how `register.module.css`/`contact.module.css` already stayed
+independent of each other despite looking similar. **Re-verified Privacy
+after moving code it depends on** — didn't treat "the extraction looks
+correct" as sufficient for already-shipped code: re-ran Privacy's
+scroll-spy and dark-mode screenshots post-refactor before considering
+the extraction done.
+
+**Fact-checked against `DOMAIN-MODEL.md` before shipping, same bar as
+Privacy** (this page states operational facts — slot counts, capacities,
+deadlines — not brand copy): ten slots / eight scrimmage / two skills
+training matches `fake-data.ts`'s `SLOTS`; 20 skater / 2 goalie
+scrimmage capacity and the goalie season-rate discount match
+`SCRIMMAGE_CAPACITY`/`SCRIMMAGE_PRICE`; "decline up to 48 hours ahead"
+matches `RELEASE_HOURS_BEFORE`; the "10 minutes" hold matches
+`HOLD_MINUTES`; "first come, first served, no priority queue" matches
+D2's passive-only vetting decision; the four divisions listed (2nd/3rd,
+3rd/4th, 5th/6th, recreational) match the real `SLOTS` labels exactly;
+"advisory, not a gate" matches DOMAIN-MODEL's explicit "no level
+filtering ... never a hidden option." Nothing needed correcting.
+
+**Resolved a previously-provisional decision, not a new one:** every
+"How it works" link across the app (`SiteNav`, `SiteFooter`, Login's
+footer, Contact's sidebar) pointed at `/#how` — the landing page's
+teaser section — because this dedicated page didn't exist yet. That was
+recorded explicitly as a stand-in at the time (see the earlier landing-
+page `DECISIONS.md` entry: "this repo doesn't have that as its own
+route"). Now that it does, every one of those links points to
+`/how-it-works` instead. The landing page's own `#how` teaser section
+is untouched — the two coexist by design, a short teaser linking out to
+the full reference, matching how the source design project structures
+both pages as separate files in the first place. `SiteNav` gained
+`active === "how"`.
+
+**Verified:** `npx tsc --noEmit` (root) and `eslint` clean. Headless
+Chromium: scroll-spy confirmed live, a TOC click confirmed to actually
+scroll, light/dark, 420px mobile, the CTA row's two links confirmed via
+`getAttribute("href")` (`/register`, `/#schedule`), every cross-page
+"How it works" link (nav, both footers, Contact's sidebar) confirmed to
+resolve to `/how-it-works`, and — the actual regression risk this pass
+carried — Privacy re-screenshotted post-refactor (scroll-spy still
+correct, section numeral still 24px, dark mode intact). Zero console
+errors throughout.

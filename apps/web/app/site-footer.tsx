@@ -10,10 +10,11 @@ import styles from "./page.module.css";
 // from login.module.css's simpler centered footer, which is that page's
 // own design, not this one reused.
 //
-// "Schedule" and "How it works" are `/#schedule`/`/#how`, not bare
-// `#schedule`/`#how` — those ids only exist on "/" itself, so a bare
-// fragment link only works when this footer happens to render there.
-// The full path lets it work correctly from Contact too.
+// "Schedule" is `/#schedule`, not bare `#schedule` — that id only exists
+// on "/" itself, so a bare fragment link only works when this footer
+// happens to render there. The full path lets it work correctly from
+// Contact too. "How it works" points at its own real page now that one
+// exists, not `/#how`'s landing-page teaser section.
 //
 // `themeToggle` defaults to the inline footer icon (what "/" itself
 // uses, per that design's later revision — see DECISIONS.md), but
@@ -34,7 +35,7 @@ export function SiteFooter({ themeToggle = true }: { themeToggle?: boolean }) {
         <span>© {SEASON.startDate.getFullYear()} · Leiden, NL</span>
         <div className={styles.footerLinks}>
           <Link href="/#schedule">Schedule</Link>
-          <Link href="/#how">How it works</Link>
+          <Link href="/how-it-works">How it works</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/privacy">Privacy</Link>
           {themeToggle && <ThemeToggle />}

@@ -62,7 +62,7 @@ export default function ContactPage() {
           <div className={styles.sideCardMuted}>
             <div className={styles.sideLabel}>Before you write</div>
             <p className={styles.sideText} style={{ marginTop: 0 }}>
-              <Link href="/#how" className={styles.sideLink}>
+              <Link href="/how-it-works" className={styles.sideLink}>
                 How it works
               </Link>{" "}
               covers registering, paying, missing a week, waitlists, and skills training.

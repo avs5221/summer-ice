@@ -1,7 +1,11 @@
-/* Privacy page — translated from the "Summer Ice Landing" Claude Design
- * project (Privacy.dc.html), same approach as the other restyled pages:
- * real classes + media queries instead of the design's inline styles.
- * Shared tokens (`.page`, `.eyebrow`) come from ../page.module.css.
+/* How It Works page — translated from the "Summer Ice Landing" Claude
+ * Design project (How It Works.dc.html). Same TOC-plus-numbered-sections
+ * shape as ../privacy/privacy.module.css (they're the same source design
+ * pattern), kept as its own module rather than merged with Privacy's —
+ * the two designs actually differ in the section numeral's font size
+ * (21px here vs Privacy's 24px), so a forced shared class would have
+ * been wrong for one of them. The TOC sidebar itself *is* shared — see
+ * ../toc-nav.tsx and ../page.module.css.
  */
 
 .headerBand {
@@ -44,12 +48,6 @@
   }
 }
 
-/* Table-of-contents classes (.tocAside, .tocList, etc.) moved to
- * ../page.module.css — shared with How It Works, which needs the
- * identical sticky scroll-spy sidebar. See ../toc-nav.tsx. */
-
-/* ─── Content ──────────────────────────────────────────────────────── */
-
 .content {
   max-width: 680px;
 }
@@ -73,8 +71,10 @@
   margin-bottom: 14px;
 }
 
+/* 21px, matching the h2 next to it exactly — this design's own numeral
+ * size, distinct from Privacy's 24px. Not a copy-paste to reconcile. */
 .sectionNum {
-  font-size: 24px;
+  font-size: 21px;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--primary);
@@ -91,6 +91,10 @@
   font-size: 14px;
   line-height: 1.75;
   color: var(--muted-foreground);
+}
+
+.sectionDesc strong {
+  color: var(--foreground);
 }
 
 .rowList {
@@ -123,13 +127,19 @@
   color: var(--muted-foreground);
 }
 
-.inlineLink {
-  color: var(--primary);
-  font-weight: 600;
+.ctaRow {
+  margin-top: 36px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.updated {
-  margin-top: 52px;
-  font-size: 12px;
-  color: var(--muted-foreground);
+.ctaSecondary {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--foreground);
+  padding: 12px 24px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 14px;
 }

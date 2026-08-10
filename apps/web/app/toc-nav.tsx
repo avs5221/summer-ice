@@ -2,13 +2,17 @@
 
 // Sticky table-of-contents with scroll-spy — highlights whichever section
 // is currently under the sticky nav as the page scrolls, per
-// Privacy.dc.html's own Component.onScroll. Reimplemented as a scroll
-// listener rather than an IntersectionObserver to match that logic
-// exactly: the *last* section whose top has crossed 120px from the
-// viewport top is "current," not the first one merely visible — that
-// distinction matters right at a section boundary.
+// Privacy.dc.html / How It Works.dc.html's own (identical)
+// Component.onScroll. Reimplemented as a scroll listener rather than an
+// IntersectionObserver to match that logic exactly: the *last* section
+// whose top has crossed 120px from the viewport top is "current," not
+// the first one merely visible — that distinction matters right at a
+// section boundary. Shared between both pages once How It Works needed
+// the identical behavior Privacy already had — see page.module.css's
+// own note on why the surrounding section styling stayed page-scoped
+// while this component and its TOC-specific classes didn't.
 import { useEffect, useState } from "react";
-import styles from "./privacy.module.css";
+import styles from "./page.module.css";
 
 export interface TocEntry {
   id: string;

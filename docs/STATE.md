@@ -115,7 +115,9 @@ account in `DECISIONS.md`.
 
 **Same day, eighth pass:** `/privacy` implemented from `Privacy.dc.html`
 — new route, didn't exist before. Header band, sticky scroll-spy table
-of contents (`app/privacy/toc-nav.tsx`), 7 numbered sections. Unlike the
+of contents (`app/privacy/toc-nav.tsx` at the time — moved to
+`app/toc-nav.tsx` in the ninth pass below, once How It Works needed the
+identical component), 7 numbered sections. Unlike the
 marketing pages, this one's factual claims (who can see what data, where
 it's hosted, roster-visibility format) were checked line-by-line against
 `docs/DOMAIN-MODEL.md` and `ARCHITECTURE.md` before shipping — a privacy
@@ -132,30 +134,55 @@ confirmed clean, same known `position: sticky` capture artifact from
 earlier this session. Zero console errors. Full account in
 `DECISIONS.md`.
 
+**Same day, ninth pass:** `/how-it-works` implemented from `How It
+Works.dc.html` — new route (every "How it works" link across the app
+previously pointed at `/#how`, the landing page's teaser section, as an
+explicitly-recorded stand-in; now resolved to the real page). Same
+header-band/scroll-spy-TOC/numbered-sections shape as `/privacy`, 7
+sections, a closing CTA row. `toc-nav.tsx` promoted from
+`app/privacy/` to shared `app/toc-nav.tsx` (its second real use —
+confirmed the two designs' TOC markup is pixel-identical before
+sharing it) — but the surrounding numbered-section styling stayed
+page-scoped (`app/how-it-works/how-it-works.module.css`), since the two
+designs' section-numeral size actually differs (24px vs. 21px) and a
+forced shared class would have been wrong for one of them. Content
+fact-checked against `DOMAIN-MODEL.md`/`fake-data.ts` the same way
+Privacy's was (slot counts, capacities, the 48-hour decline window, the
+10-minute hold, division names) — all matched, nothing needed
+correcting. `npx tsc --noEmit` + `eslint` clean; headless-Chromium
+pass — scroll-spy and TOC-click confirmed live, light/dark, 420px
+mobile, every cross-page "How it works" link confirmed to resolve to
+`/how-it-works`, and Privacy re-screenshotted after the `toc-nav.tsx`
+move to confirm the extraction didn't regress already-shipped code.
+Zero console errors. Full account in `DECISIONS.md`.
+
 ---
 
 ## Last commit
 
 This file is regenerated as part of the same commit it describes, so it
 can't name its own hash in advance — check `git log -1`. That commit
-implements `/privacy` (new route) from `Privacy.dc.html` — a scroll-spy
-table of contents over 7 sections whose factual claims were checked
-against `DOMAIN-MODEL.md`/`ARCHITECTURE.md` before shipping, not just
-laid out. Same design-import session, each on its own commit before it:
-`/contact` implemented from `Contact.dc.html` (new route; corrected
-contact email; a `mailto:`-based submit rather than a form with nowhere
-to send to; `site-footer.tsx` factored out) → `/login` restyled from
-`Login.dc.html` (Google sign-in shipped disabled after live testing
-showed it can't fail gracefully yet) → `/register` restyled from
-`Register.dc.html` (row-state schedule table on top of the existing
-fake-data hold/waitlist/contention logic, kept rather than replaced) →
-the homepage (`/`) re-synced against changes made to the design project
-after its initial import → a fix swapping in the real `logo-circle.png`
-and reverting an "iDEAL" copy correction per Michael → the original
-landing-page restyle from `Summer Ice Landing.dc.html`. `site-nav.tsx`,
-`site-footer.tsx` and `theme-toggle.tsx` are now shared across all five
-restyled/new pages. Before all of that, a separate session landed the
-first slice of
+implements `/how-it-works` (new route) from `How It Works.dc.html` —
+7 fact-checked sections, and every "How it works" link across the app
+repointed from the landing page's `/#how` teaser (an explicitly-recorded
+stand-in) to the real page. `toc-nav.tsx` promoted from `app/privacy/`
+to shared, on its second real use. Same design-import session, each on
+its own commit before it: `/privacy` implemented from `Privacy.dc.html`
+(scroll-spy TOC, factual claims checked against `DOMAIN-MODEL.md`/
+`ARCHITECTURE.md`) → `/contact` implemented from `Contact.dc.html` (new
+route; corrected contact email; a `mailto:`-based submit rather than a
+form with nowhere to send to; `site-footer.tsx` factored out) →
+`/login` restyled from `Login.dc.html` (Google sign-in shipped disabled
+after live testing showed it can't fail gracefully yet) → `/register`
+restyled from `Register.dc.html` (row-state schedule table on top of
+the existing fake-data hold/waitlist/contention logic, kept rather than
+replaced) → the homepage (`/`) re-synced against changes made to the
+design project after its initial import → a fix swapping in the real
+`logo-circle.png` and reverting an "iDEAL" copy correction per Michael →
+the original landing-page restyle from `Summer Ice Landing.dc.html`.
+`site-nav.tsx`, `site-footer.tsx`, `theme-toggle.tsx` and `toc-nav.tsx`
+are now shared across all six restyled/new pages. Before all of that, a
+separate session landed the first slice of
 build-order phase 4 (`ARCHITECTURE.md` §7): password sign-up/sign-in/
 sign-out via Supabase Auth, session handling (`@supabase/ssr`), the
 `credentials`/`roles` provisioning and lookup layer in `packages/core`,
@@ -169,7 +196,7 @@ identity, closing the security gap they shipped with on purpose.
 | `packages/db` | Drizzle schema (27 tables), 7 migrations, seed scripts, env/guard-host scripts, realtime health check, `dbDirectPooled(max)`. No `outbox` table yet. **Found this session:** the `sessions` table (`token_hash`, `revoked_at`) is a self-hosted-plan relic nothing uses — Supabase Auth's own JWT/cookie session is authoritative. Left migrated, not dropped; see `ARCHITECTURE.md` §7 and `DOMAIN-MODEL.md` §2 |
 | `packages/core` | `slot-fill.ts`, `capacity-lock.ts`, `registration.ts`, `waitlist.ts` (season-registration concurrency core, phase 3, done). **New:** `identity.ts` — `ensurePersonForAuthUser` (the `credentials` insert on first sign-in, idempotent), `getPersonForAuthSubject`, `getPersonRoles`, `personHasRole`. 18 integration tests total (4 new), plus the on-demand `load-test/season-registration.ts` harness. No attendance or extras-claim functions; no accept-offer function; no dependent-promotion function |
 | `packages/contracts` | `registration.ts` (unchanged in shape except `personId` removed from `holdCartRequestSchema` — see below) plus **new** `identity.ts` (`signupRequestSchema`, `loginRequestSchema`) |
-| `apps/web` | Registration API routes (`app/api/registrations/**`) call `~/lib/auth`'s `requireCurrentPerson`/`requireOwnerOrRole` instead of trusting a body-supplied `personId` — **the hold route's request schema no longer accepts `personId` at all**, it's taken from the session. `app/lib/supabase/server.ts` + `browser.ts` (the `@supabase/ssr` client factories — distinct from the pre-existing `app/lib/supabase-client.ts`, which stays the public, unauthenticated Realtime-only client, on purpose), `proxy.ts` (Next 16's renamed `middleware.ts` — session-cookie refresh only, no redirect gating), `app/lib/auth.ts` (`getCurrentPerson`/`requireCurrentPerson`/`requireOwnerOrRole`), `app/signup/`, `app/lib/auth-actions.ts` (logout). `/schedule`, `/admin` and `/signup` are still fake-data/wave-1, unstyled. **This session:** `/`, `/register`, `/login`, `/contact` and the new `/privacy` all restyled/built from the "Summer Ice Landing" Claude Design project, sharing `app/site-nav.tsx`, `app/site-footer.tsx` and `app/theme-toggle.tsx`. `/` — still `force-dynamic`, still reads `getSlotFillOverview()` for real, now a real nav/hero/stat-band/schedule-table/footer instead of a bullet list (`app/page.module.css`, `app/landing-slot-row.tsx`, replacing the deleted `app/slot-fill-row.tsx`). `/register` — still fake-data (`register-client.tsx` fully rewritten: role-state schedule table, sticky summary bar, `app/register/register.module.css`), but its existing hold/waitlist/contention-demo logic was kept and extended (real "stale" row state), not thrown out for the design's own inert static mock. `/login` — the real `login` server action unchanged, restyled onto a centered auth card (`app/login/login.module.css`); "Continue with Google" (`app/login/google-signin-button.tsx`) is present but `disabled` — Google isn't an enabled Supabase provider yet and testing confirmed `signInWithOAuth` can't fail gracefully in that state (real browser navigation to a raw JSON error, not a catchable JS error). `/contact` — new (`app/contact/page.tsx`, `contact.module.css`, `contact-form.tsx`); no backend exists to receive a submission, so the form composes a `mailto:hello@summerice.nl` link (corrected from the design's `.club` address — an abandoned staging subdomain, not this project's real domain) rather than pretending to POST somewhere. `/privacy` — new (`app/privacy/page.tsx`, `privacy.module.css`, `toc-nav.tsx` — a client-side scroll-spy table of contents); its factual claims (roles' data access, EU hosting, roster-visibility format) were checked against `DOMAIN-MODEL.md`/`ARCHITECTURE.md` before shipping and all matched exactly, no corrections needed. `app/components/nav.tsx` hides itself on all five (each has its own `SiteNav`, `active?: "home" \| "register" \| "login"`, optional since Contact/Privacy have no active nav item). `globals.css` gained the design's OKLCH token set and switched `dark:` to class strategy site-wide (`@custom-variant dark`); `layout.tsx` gained the theme-init inline script + `suppressHydrationWarning` on `<html>` that makes that safe — see `DECISIONS.md` |
+| `apps/web` | Registration API routes (`app/api/registrations/**`) call `~/lib/auth`'s `requireCurrentPerson`/`requireOwnerOrRole` instead of trusting a body-supplied `personId` — **the hold route's request schema no longer accepts `personId` at all**, it's taken from the session. `app/lib/supabase/server.ts` + `browser.ts` (the `@supabase/ssr` client factories — distinct from the pre-existing `app/lib/supabase-client.ts`, which stays the public, unauthenticated Realtime-only client, on purpose), `proxy.ts` (Next 16's renamed `middleware.ts` — session-cookie refresh only, no redirect gating), `app/lib/auth.ts` (`getCurrentPerson`/`requireCurrentPerson`/`requireOwnerOrRole`), `app/signup/`, `app/lib/auth-actions.ts` (logout). `/schedule`, `/admin` and `/signup` are still fake-data/wave-1, unstyled. **This session:** `/`, `/register`, `/login`, `/contact`, `/privacy` and the new `/how-it-works` all restyled/built from the "Summer Ice Landing" Claude Design project, sharing `app/site-nav.tsx`, `app/site-footer.tsx`, `app/theme-toggle.tsx` and `app/toc-nav.tsx`. `/` — still `force-dynamic`, still reads `getSlotFillOverview()` for real, now a real nav/hero/stat-band/schedule-table/footer instead of a bullet list (`app/page.module.css`, `app/landing-slot-row.tsx`, replacing the deleted `app/slot-fill-row.tsx`). `/register` — still fake-data (`register-client.tsx` fully rewritten: role-state schedule table, sticky summary bar, `app/register/register.module.css`), but its existing hold/waitlist/contention-demo logic was kept and extended (real "stale" row state), not thrown out for the design's own inert static mock. `/login` — the real `login` server action unchanged, restyled onto a centered auth card (`app/login/login.module.css`); "Continue with Google" (`app/login/google-signin-button.tsx`) is present but `disabled` — Google isn't an enabled Supabase provider yet and testing confirmed `signInWithOAuth` can't fail gracefully in that state (real browser navigation to a raw JSON error, not a catchable JS error). `/contact` — new (`app/contact/page.tsx`, `contact.module.css`, `contact-form.tsx`); no backend exists to receive a submission, so the form composes a `mailto:hello@summerice.nl` link (corrected from the design's `.club` address — an abandoned staging subdomain, not this project's real domain) rather than pretending to POST somewhere. `/privacy` — new (`app/privacy/page.tsx`, `privacy.module.css`); factual claims (roles' data access, EU hosting, roster-visibility format) checked against `DOMAIN-MODEL.md`/`ARCHITECTURE.md` before shipping, all matched. `/how-it-works` — new (`app/how-it-works/page.tsx`, `how-it-works.module.css`); same scroll-spy-TOC shape as `/privacy` (`app/toc-nav.tsx`, promoted to shared on this page's need for the identical component — the surrounding section styling stayed page-scoped since the two designs' numeral size actually differs); content also fact-checked, all matched. Every "How it works" link app-wide now points here instead of the landing page's `/#how` teaser anchor (an explicitly-recorded stand-in until this page existed). `app/components/nav.tsx` hides itself on all six (each has its own `SiteNav`, `active?: "home" \| "register" \| "login" \| "how"`, optional since Contact/Privacy have no active nav item). `globals.css` gained the design's OKLCH token set and switched `dark:` to class strategy site-wide (`@custom-variant dark`); `layout.tsx` gained the theme-init inline script + `suppressHydrationWarning` on `<html>` that makes that safe — see `DECISIONS.md` |
 | `apps/mobile` | Does not exist — not scaffolded, per plan (Phase 4/12) |
 
 ### The registration routes' security gap is closed for the case tested

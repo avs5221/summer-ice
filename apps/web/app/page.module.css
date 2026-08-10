@@ -719,6 +719,82 @@
   cursor: pointer;
 }
 
+/* ─── Table of contents ────────────────────────────────────────────── */
+/* Shared by any page with a sticky scroll-spy TOC over numbered sections
+ * (Privacy, How It Works) — see ../toc-nav.tsx. Pixel-identical between
+ * both source designs' TOC markup, unlike the numbered-section styling
+ * around it (Privacy's section numeral is 24px; How It Works' is 21px),
+ * which stays page-scoped rather than forced into one shared class.
+ */
+
+.tocAside {
+  position: sticky;
+  top: 80px;
+}
+
+@media (max-width: 720px) {
+  .tocAside {
+    position: static;
+  }
+}
+
+.tocLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin-bottom: 12px;
+}
+
+.tocList {
+  display: flex;
+  flex-direction: column;
+  border-left: 1.5px solid var(--border);
+}
+
+.tocLink {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 6px;
+  align-items: baseline;
+  padding: 7px 0 7px 13px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.tocLink:hover {
+  color: var(--foreground);
+}
+
+.tocLinkActive {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 6px;
+  align-items: baseline;
+  padding: 7px 0 7px 13px;
+  margin-left: -1.5px;
+  border-left: 1.5px solid var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.tocNum {
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.6;
+  font-feature-settings: "tnum" 1;
+}
+
+.tocNumActive {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary);
+  font-feature-settings: "tnum" 1;
+}
+
 @keyframes si-pulse {
   0%,
   100% {
