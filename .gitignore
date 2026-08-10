@@ -11,7 +11,8 @@ apps/web/next-env.d.ts
 # Env
 .env
 .env.*
-!.env.example
+!.env.local.example
+!.env.production.example
 
 # Logs
 *.log

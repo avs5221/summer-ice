@@ -24,10 +24,13 @@ pnpm dev
 
 ## Environment variables
 
-Every other package in this monorepo reads the single `.env` at the repo
-root (see `packages/db/env.ts`). Next.js doesn't: it only auto-loads `.env*`
-files from **this** directory. So the two `NEXT_PUBLIC_SUPABASE_*` variables
-also need to exist in `apps/web/.env.local` (gitignored, not committed) —
-copy their values from the repo root `.env.example`. Everything else
-(`DATABASE_URL`, `DIRECT_URL`) stays root-only; nothing in this app reads
-them yet.
+Every other package in this monorepo reads `.env.local` or `.env.production`
+at the repo root (see `packages/db/env.ts` and CLAUDE.md → "Environment
+files"). Next.js doesn't: it only auto-loads `.env*` files from **this**
+directory. So the two `NEXT_PUBLIC_SUPABASE_*` variables also need to exist
+in `apps/web/.env.local` — **a different file from the repo-root one of the
+same name**, gitignored, not committed — copy their values from the repo
+root `.env.production.example` (these are the real Supabase project's
+public values; `NEXT_PUBLIC_*` is safe to expose, see the comment in
+`app/lib/supabase-client.ts`). Everything else (`DATABASE_URL`,
+`DIRECT_URL`) stays root-only; nothing in this app reads them yet.

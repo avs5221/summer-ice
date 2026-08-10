@@ -1,13 +1,17 @@
 # Local development database ONLY. Production is Supabase — see
 # docs/ARCHITECTURE.md §10. This gives a real Postgres to develop and run
-# migrations against without touching the (not-yet-created) Supabase
-# project, and without paying for a dev-tier Supabase branch.
+# migrations against without touching the real Supabase project for every
+# schema change, and without paying for a dev-tier Supabase branch.
 #
 # Postgres 18 specifically, matching what packages/db/schema/_columns.ts
 # assumes for native uuidv7() — see the schema-conventions note in
-# ARCHITECTURE.md §5 about Supabase's own Postgres version lagging behind.
+# ARCHITECTURE.md §5 about Supabase's own Postgres version lagging behind
+# (covered by the uuidv7() shim in the meantime).
 #
 # Run via the root scripts: `pnpm db:up` / `pnpm db:down` / `pnpm db:nuke`.
+# Reads .env.local, not .env.production — see CLAUDE.md → "Environment
+# files". POSTGRES_PASSWORD here must stay a distinct, local-only value,
+# never the Supabase database password.
 services:
   postgres:
     image: postgres:18
@@ -15,7 +19,7 @@ services:
     environment:
       POSTGRES_USER: summerice
       POSTGRES_DB: summerice
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set — see .env.example}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set — see .env.local.example}
     ports:
       - "5433:5432"
     volumes:

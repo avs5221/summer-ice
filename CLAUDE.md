@@ -69,6 +69,75 @@ skips composite references in favor of path aliases + workspace `package.json`
 dependencies, which give the same "import by name" ergonomics without requiring a build
 step or a `-b` invocation.
 
+## Environment files
+
+**Two separate files, both at the repo root, neither committed: `.env.local` and
+`.env.production`.** This split exists because a single shared `.env` once let a
+local-only command resolve straight through to the real Supabase database — nothing
+technical stopped it, only the assumption that "the db scripts are for local dev" held.
+That assumption broke the first time `.env`'s values were updated to real Supabase
+credentials for a verification task. Read this section before touching any `db:*` script,
+`packages/db/env.ts`, or `packages/db/guard-host.ts` — the mechanism below is why that
+mistake cannot recur silently, and undoing any part of it defeats the point.
+
+| File | Committed? | Read by | Contents |
+|---|---|---|---|
+| `.env.local` | No — `.env.local.example` is | Every ordinary `db:*` script, by default | Local Docker Postgres only (`packages/db/docker-compose.yml`, port 5433) |
+| `.env.production` | No — `.env.production.example` is | Only `*:prod` script variants, via `SUMMERICE_ENV=production` | The real Supabase project |
+
+`packages/db/env.ts` picks between them based on `process.env.SUMMERICE_ENV` — `"production"`
+loads `.env.production`, anything else (including unset) loads `.env.local`. **Local is the
+default in every case.** Reaching production requires deliberately setting that variable,
+which only the `:prod` scripts do.
+
+**`POSTGRES_PASSWORD` in `.env.local` must be a value that has never been the Supabase
+database password**, not a coincidence of both files once being copy-pasted from the same
+place. It's what makes the local Docker container structurally incapable of being confused
+for the real database, on top of the host check below.
+
+### The host guard — a hard exit, not a warning
+
+Every script above also runs `packages/db/guard-host.ts <local-only|remote-required>` before
+doing anything else. It resolves the connection string exactly as the real command would,
+extracts the hostname, and:
+
+- **`local-only`** (the default for `generate`, `migrate`, `seed`, `studio`, and `db:nuke`)
+  — refuses unless the host is `localhost` or `127.0.0.1`. Anything else exits 1 with the
+  resolved host named in the message, before a single query runs.
+- **`remote-required`** (`migrate:prod`, `health:realtime`) — refuses if the host *is*
+  local. Catches the opposite mistake: running a "prod" command against a stale or
+  misconfigured `.env.production` that happens to point at nothing in particular.
+
+This is deliberately redundant with the file split above — the guard checks the *resolved*
+host regardless of which file supplied it, so a mistake in either layer (wrong file loaded,
+or the right file with a wrong value in it) still gets caught. Neither layer alone was
+trusted to be enough.
+
+`db:nuke` gets the guard even though `docker compose down --volumes` never reads
+`DATABASE_URL`/`DIRECT_URL` at all — it only ever operates on the local Compose project
+named in `packages/db/docker-compose.yml`, so it cannot structurally reach Supabase
+regardless of what any `.env*` file contains. The guard there is belt-and-suspenders for
+the single most irreversible command in this toolkit, not evidence that it was ever
+actually at risk — don't remove it on the reasoning that it's "provably unnecessary."
+
+### Running a migration against production
+
+```bash
+pnpm db:migrate:prod
+```
+
+Requires `.env.production` to exist and resolve to a real remote host — the guard checks
+this before `drizzle-kit migrate` ever runs. There is no flag or shortcut that skips it, on
+purpose. If the guard refuses and the target genuinely is production, the fix is to check
+`.env.production` itself, not to bypass the check.
+
+### `apps/web/.env.local` is a different file
+
+Next.js auto-loads `.env*` files from `apps/web/`, not the repo root — so
+`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` also need to exist in
+`apps/web/.env.local`, which is unrelated to the root file of the same name despite sharing
+a filename. See `apps/web/README.md` and `apps/web/app/lib/supabase-client.ts`.
+
 ## TypeScript
 
 **Always run `npx tsc --noEmit` from the repo root — project-wide — never against an

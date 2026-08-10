@@ -1,41 +1,37 @@
-// Resolves the two connection strings this package needs. See
-// docs/ARCHITECTURE.md §5 ("Two connection strings") for the full story —
-// short version:
+// Resolves the two connection strings this package needs, from one of two
+// files depending on context — see CLAUDE.md → "Environment files" for the
+// full story. Short version:
 //
-//   DATABASE_URL — the Supabase transaction-mode pooler (port 6543).
-//                   Runtime code uses this, via dbPooled() in client.ts.
-//   DIRECT_URL   — the Supabase direct connection (port 5432).
-//                   Migrations and one-off scripts use this, via
-//                   dbDirect() in client.ts, because the pooler does not
-//                   support the multi-statement transactions migrations
-//                   require.
+//   .env.local      — local Docker Postgres. Read by default, by every
+//                      ordinary db:* script.
+//   .env.production  — the real Supabase project. Read ONLY when
+//                      SUMMERICE_ENV=production is set in the environment,
+//                      which only the explicit *:prod script variants do.
+//                      Never the default — see guard-host.ts, which every
+//                      script that resolves a connection also runs before
+//                      touching anything.
 //
-// Locally there is no pooler — packages/db/docker-compose.yml runs one
-// plain Postgres container — so DATABASE_URL and DIRECT_URL point at the
-// same place in .env. They only diverge once pointed at a real Supabase
-// project.
-//
-// In production these are injected directly into the process environment
-// (Vercel project settings — see docs/ARCHITECTURE.md §10). In local dev,
-// though, drizzle-kit and this package's own scripts are invoked via `pnpm
-// --filter @summerice/db run ...`, which sets cwd to packages/db — not the
-// repo root where .env actually lives — so there's nothing there to
-// auto-load it. This does a minimal, dependency-free load of the
-// repo-root .env as a fallback, only for variables not already present in
-// the environment. It still fails loudly below if a variable is absent
-// from both places.
+// In deployed environments (Vercel) these are injected directly into the
+// process environment (project settings — see docs/ARCHITECTURE.md §10),
+// so this file-loading fallback never fires there; it exists purely for
+// local development and manually-run scripts, where pnpm sets cwd to
+// packages/db, not the repo root where these files live.
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 let loaded = false;
 
+function envFileName(): ".env.local" | ".env.production" {
+  return process.env.SUMMERICE_ENV === "production" ? ".env.production" : ".env.local";
+}
+
 function loadRootEnvFileOnce(): void {
   if (loaded) return;
   loaded = true;
 
   const thisDir = dirname(fileURLToPath(import.meta.url));
-  const rootEnvPath = join(thisDir, "..", "..", ".env");
+  const rootEnvPath = join(thisDir, "..", "..", envFileName());
   if (!existsSync(rootEnvPath)) return;
 
   for (const line of readFileSync(rootEnvPath, "utf8").split("\n")) {
@@ -55,10 +51,10 @@ function requireEnv(name: "DATABASE_URL" | "DIRECT_URL", usedFor: string): strin
   loadRootEnvFileOnce();
   const url = process.env[name];
   if (!url) {
+    const file = envFileName();
     throw new Error(
-      `${name} is not set. Copy .env.example to .env at the repo root and ` +
-        `fill it in (see docs/ARCHITECTURE.md §5, "Two connection strings"). ` +
-        `${name} is ${usedFor}.`,
+      `${name} is not set. Copy ${file}.example to ${file} at the repo root and ` +
+        `fill it in (see CLAUDE.md → "Environment files"). ${name} is ${usedFor}.`,
     );
   }
   return url;

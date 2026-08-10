@@ -246,7 +246,7 @@ Migrations are generated from schema-as-code, committed, and applied on deploy. 
 
 - **`dbDirect()` — migrations and one-off scripts** (`drizzle-kit migrate`, `pnpm db:seed`). Connects straight to Postgres (port 5432, `DIRECT_URL`), bypassing the pooler entirely. A migration runs as a multi-statement transaction, which transaction-mode pooling does not support. **Run migrations from a local machine or CI, never from the Vercel build** — the build only ever has `DATABASE_URL` (the pooler) available, and a migration running as part of a build that concurrent requests might be hitting is its own hazard regardless.
 
-Locally there is no pooler — `packages/db/docker-compose.yml` is one plain Postgres container — so `DATABASE_URL` and `DIRECT_URL` point at the same place (see `.env.example`). They only diverge once pointed at a real Supabase project.
+Locally there is no pooler — `packages/db/docker-compose.yml` is one plain Postgres container — so `DATABASE_URL` and `DIRECT_URL` point at the same place (see `.env.local.example`). They only diverge in `.env.production`, a **separate, never-committed file from `.env.local`** — see `CLAUDE.md` → "Environment files" for the full split and the guard that backs it up; a script pointed at the wrong one refuses outright rather than silently reaching the wrong database.
 
 Call the relevant factory once per request in Next.js code — inside the Server Component, Server Action or route handler that needs it — never as a module-level singleton reused across invocations. That would defeat the point of `max: 1` above.
 
@@ -438,7 +438,7 @@ The self-hosted plan's `summerice.club` staging subdomain is dropped along with 
 
 ### Secrets and environment variables
 
-Vercel's own environment variable store, set per **Production**, **Preview** and **Development** independently — not a `.env` file on a host, because there is no host. ("Development" here is Vercel's own term for values pulled via `vercel env pull` for local use of the Vercel CLI; this repository's actual local workflow doesn't use that, and reads `.env` / `apps/web/.env.local` directly instead — see `.env.example`. Documented anyway, since Vercel's dashboard has the three-way split regardless of whether this repo currently exercises the third one.)
+Vercel's own environment variable store, set per **Production**, **Preview** and **Development** independently — not a `.env` file on a host, because there is no host. ("Development" here is Vercel's own term for values pulled via `vercel env pull` for local use of the Vercel CLI; this repository's actual local workflow doesn't use that, and reads `.env.local` / `.env.production` at the repo root, plus `apps/web/.env.local` for the browser-exposed Supabase values — see `CLAUDE.md` → "Environment files" for the full split. Documented anyway, since Vercel's dashboard has the three-way split regardless of whether this repo currently exercises the third one.)
 
 | Variable | Production | Preview | Development (Vercel CLI) |
 |---|---|---|---|

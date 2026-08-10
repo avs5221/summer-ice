@@ -12,13 +12,15 @@
     "lint": "eslint .",
     "lint:all": "pnpm --if-present -r run lint",
     "dev:web": "pnpm --filter @summerice/web run dev",
-    "db:up": "docker compose -f packages/db/docker-compose.yml --env-file .env -p summerice up -d",
-    "db:down": "docker compose -f packages/db/docker-compose.yml --env-file .env -p summerice down",
-    "db:nuke": "docker compose -f packages/db/docker-compose.yml --env-file .env -p summerice down --volumes",
+    "db:up": "docker compose -f packages/db/docker-compose.yml --env-file .env.local -p summerice up -d",
+    "db:down": "docker compose -f packages/db/docker-compose.yml --env-file .env.local -p summerice down",
+    "db:nuke": "node packages/db/guard-host.ts local-only direct && docker compose -f packages/db/docker-compose.yml --env-file .env.local -p summerice down --volumes",
     "db:generate": "pnpm --filter @summerice/db run generate",
     "db:migrate": "pnpm --filter @summerice/db run migrate",
+    "db:migrate:prod": "pnpm --filter @summerice/db run migrate:prod",
     "db:studio": "pnpm --filter @summerice/db run studio",
-    "db:seed": "pnpm --filter @summerice/db run seed"
+    "db:seed": "pnpm --filter @summerice/db run seed",
+    "db:health:realtime": "pnpm --filter @summerice/db run health:realtime"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
