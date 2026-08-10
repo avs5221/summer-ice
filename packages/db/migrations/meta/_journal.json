@@ -5,36 +5,43 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1786242526114,
-      "tag": "0000_nostalgic_mathemanic",
+      "when": 1786242526113,
+      "tag": "0000_uuidv7_shim",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1786244384439,
-      "tag": "0001_add_identity_and_season_structure",
+      "when": 1786242526114,
+      "tag": "0001_nostalgic_mathemanic",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "7",
-      "when": 1786248631201,
-      "tag": "0002_registration_money_attendance_and_notifications",
+      "when": 1786244384439,
+      "tag": "0002_add_identity_and_season_structure",
       "breakpoints": true
     },
     {
       "idx": 3,
       "version": "7",
-      "when": 1786248993892,
-      "tag": "0003_link_payments_to_claims",
+      "when": 1786248631201,
+      "tag": "0003_registration_money_attendance_and_notifications",
       "breakpoints": true
     },
     {
       "idx": 4,
       "version": "7",
+      "when": 1786248993892,
+      "tag": "0004_link_payments_to_claims",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
       "when": 1786336801745,
-      "tag": "0004_live_fill_broadcast",
+      "tag": "0005_live_fill_broadcast",
       "breakpoints": true
     }
   ]

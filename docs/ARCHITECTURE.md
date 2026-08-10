@@ -99,7 +99,7 @@ Pin exact versions at scaffold time and do not chase minors between September an
 
 **Not verified — check at install:** current Expo SDK.
 
-**Open risk — verify before the Supabase project is created, not after.** §5's primary-key convention assumes native `uuidv7()`, a **Postgres 18** feature. Verified by web search, August 2026: Supabase's default for new projects is currently **Postgres 17**; Postgres 18 support was floated with a "rough target" of January 2026 that appears to have slipped, with no confirmed general availability as of this writing. Before creating the project, confirm Postgres 18 is actually offered. If it isn't yet: do **not** preemptively change §5's schema conventions — they're correct for where this is headed — but the first migration needs a stopgap for the PK default until it is, either the `pg_uuidv7` extension or `gen_random_uuid()` with the accepted cost that IDs aren't time-ordered until the project upgrades. Local development is unaffected regardless: `packages/db/docker-compose.yml` runs Postgres 18 directly, matching §5 exactly.
+**Resolved — was an open risk, now covered by a shim.** §5's primary-key convention assumes native `uuidv7()`, a **Postgres 18** feature. Confirmed directly against the real Supabase project (not just Supabase's general docs): Postgres **17.6**, no `uuidv7()` at all. Rather than gate the schema on Supabase's Postgres 18 timeline, `packages/db/migrations/0000_uuidv7_shim.sql` provides a pure-SQL, spec-compliant implementation that runs before every other migration and gets out of the way automatically once the real built-in exists — see §5, "`uuidv7()` compatibility shim." Local development is unaffected either way: `packages/db/docker-compose.yml` runs Postgres 18 directly, so the shim's own guard skips creating it there, matching §5 exactly.
 
 ### Build-step constraints
 
@@ -258,6 +258,12 @@ Call the relevant factory once per request in Next.js code — inside the Server
 
 Caveat, accepted: a UUIDv7 leaks its creation time. For a registration or a claim that is harmless — the creation time is already visible to the person who made it.
 
+**`uuidv7()` compatibility shim, `packages/db/migrations/0000_uuidv7_shim.sql`.** The convention above is correct and unchanged — this is the gap between deciding it and Supabase actually shipping Postgres 18. Confirmed against the real project (August 2026): Supabase Postgres is 17.6, which has no `uuidv7()` at all, so every table's PK default would fail on first use without this.
+
+The shim is a pure-SQL, RFC 9562 §5.7-compliant implementation (`gen_random_bytes` for randomness, `overlay` to place a 48-bit millisecond timestamp, explicit version/variant bits) — not a rewrite of the convention, a stand-in for the one function it depends on. It's guarded with `to_regprocedure('uuidv7()')`, the same name resolution `_columns.ts`'s `default(sql\`uuidv7()\`)` uses, so it only ever creates itself where nothing already answers to that name. **The moment Supabase ships Postgres 18, this migration becomes a no-op** — the guard will find the real built-in and skip creating the shim. At that point the shim function can be dropped outright (`drop function if exists public.uuidv7();`, in a follow-up migration) — nothing else references it by name or behaviour, since every table's default is just the string `uuidv7()`, indifferent to which implementation answers it.
+
+Verified with generated data, not by inspection: 5,000 values against a real Postgres 17 container (all unique, all version 7, all variant correct, embedded timestamp within ~1ms of wall-clock, zero ordering violations grouped by millisecond) and the same suite against Postgres 18's native builtin for comparison, confirming the shim and the built-in are behaviourally identical from the schema's point of view.
+
 **Timestamps: always `timestamptz`, never `timestamp`.** The whole system turns on deadlines — `release_at`, `hold_expires_at`, `offer_expires_at`, `closes_at`. A naive timestamp during a Dutch daylight-saving transition would silently shift a release deadline by an hour. Every table gets `created_at timestamptz not null default now()`.
 
 **Money: signed `integer` cents.** Never `numeric`, never `float`. Already reflected in the `_cents` column naming.
@@ -400,13 +406,7 @@ Vercel, with `apps/web` as the Project's **Root Directory** — a Vercel Project
 
 ### Database
 
-Supabase Postgres. **Not yet created** — every connection string in `.env.example` is illustrative, and no migration has ever run against it (see the top-level instruction this session was given: the project does not exist yet).
-
-When it is created:
-
-- Region: Frankfurt (`eu-central-1`), to sit next to Vercel's `fra1`. Both are the closest major region to Leiden, and co-locating app and database matters directly for §12's connection-exhaustion risk — a shorter round trip means a connection is held for less time per query, which is exactly the resource `max: 1` (§5) is trying to conserve.
-- Confirm Postgres 18 is actually offered as a project option before creating it — see §2's open risk note on `uuidv7()`. Don't assume; check.
-- The two connection strings (§5) are both shown in the Supabase dashboard under Project Settings → Database, listed separately — they are not derived from each other and shouldn't be constructed by hand.
+Supabase Postgres. **Created**, region `eu-central-1` (Frankfurt) — next to Vercel's `fra1`, both the closest major region to Leiden, which matters directly for §12's connection-exhaustion risk: a shorter round trip means a connection is held for less time per query, exactly the resource `max: 1` (§5) is trying to conserve. Postgres **17.6** — confirmed directly, not assumed; see §5's `uuidv7()` shim for what that requires. The migration set is applied; see §5 for the connection strings actually in use, which come from the Supabase dashboard's Project Settings → Database and are not derived from each other or constructed by hand.
 
 ### Backups
 
@@ -522,7 +522,7 @@ Run this once the Supabase project exists and the registration flow is built eno
 
 | # | Phase | Target |
 |---|---|---|
-| 1 | Vercel project + Supabase project (confirm Postgres 18 availability first — §2); local Docker for dev unaffected either way | Sept |
+| 1 | ~~Vercel project + Supabase project~~ — done. Postgres 17.6, covered by the `uuidv7()` shim (§5); local Docker for dev unaffected either way | Sept |
 | 2 | Schema and migrations from the domain model | Sept |
 | 3 | **Concurrency core + load test, against local Postgres** | Sept — the real gate |
 | 4 | Auth (Supabase Auth behind `credentials`), family accounts, roles | Oct |
@@ -577,7 +577,7 @@ Tracked here rather than in conversation, because several have long lead times.
 | Yellow versus amber status collision | design pass | Phase 6 | See §11 |
 | Expo SDK exact version | at install | Phase 12 | See §2 |
 | WordPress removal and DNS cutover sequencing | Michael + Cas | Phase 10 | Decide whether the app goes live on a subdomain first or cuts over directly |
-| Confirm Supabase Postgres 18 is available before creating the project | Michael | Phase 1 | Not confirmed as of this writing — default for new projects is Postgres 17. See §2's open risk note on `uuidv7()` |
+| Drop the `uuidv7()` shim once Supabase ships Postgres 18 | Michael | none — cleanup only | `drop function if exists public.uuidv7();` in a follow-up migration. The shim's own guard already makes this optional rather than urgent — see §5 |
 | Vercel plan tier — Hobby's cron limits (2 jobs, once-daily max) can't serve the outbox drain | Michael | Phase 8 | Needs Pro before the outbox pattern delivers near-real-time dispatch. Budget decision against `docs/CONTEXT.md` §4 — see §6 |
 | Supabase Pro daily backups vs. the paid PITR add-on | Michael | Phase 1 (decide), before launch (act) | PITR isn't bundled with Pro — verified by web search, see §10. Same "several hundred unreconstructable January registrations" stakes as the original WAL-archiving section |
 | Preview deployments sharing Production's Supabase project | Michael | Phase 10 | Fine pre-launch with no real data at stake; revisit once real registrations and payments exist — see §10 |

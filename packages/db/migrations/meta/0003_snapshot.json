@@ -1,6 +1,6 @@
 {
-  "id": "c5491601-ee97-40e5-b9b3-39169d71a347",
-  "prevId": "444a2ab1-1401-43c2-9757-9f5f7d9c14ae",
+  "id": "444a2ab1-1401-43c2-9757-9f5f7d9c14ae",
+  "prevId": "49dcf966-5d96-4a80-a33a-7858b663bdcb",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2090,12 +2090,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "claim_id": {
-          "name": "claim_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -2156,19 +2150,6 @@
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
-        },
-        "payments_claim_id_claims_id_fk": {
-          "name": "payments_claim_id_claims_id_fk",
-          "tableFrom": "payments",
-          "tableTo": "claims",
-          "columnsFrom": [
-            "claim_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2190,10 +2171,6 @@
         "payments_status_check": {
           "name": "payments_status_check",
           "value": "\"payments\".\"status\" in ('open', 'canceled', 'pending', 'authorized', 'expired', 'failed', 'paid')"
-        },
-        "payments_cart_or_claim_exclusive": {
-          "name": "payments_cart_or_claim_exclusive",
-          "value": "not (\"payments\".\"cart_id\" is not null and \"payments\".\"claim_id\" is not null)"
         }
       },
       "isRLSEnabled": false

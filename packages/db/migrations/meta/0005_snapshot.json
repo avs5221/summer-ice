@@ -1,6 +1,6 @@
 {
-  "id": "c5491601-ee97-40e5-b9b3-39169d71a347",
-  "prevId": "444a2ab1-1401-43c2-9757-9f5f7d9c14ae",
+  "id": "0e5bc3ac-301c-4719-8e39-9b5a93896b44",
+  "prevId": "c5491601-ee97-40e5-b9b3-39169d71a347",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -41,17 +41,17 @@
       "uniqueConstraints": {
         "levels_name_unique": {
           "name": "levels_name_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "name"
-          ]
+          ],
+          "nullsNotDistinct": false
         },
         "levels_rank_unique": {
           "name": "levels_rank_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "rank"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -141,28 +141,28 @@
         "people_level_id_levels_id_fk": {
           "name": "people_level_id_levels_id_fk",
           "tableFrom": "people",
-          "tableTo": "levels",
           "columnsFrom": [
             "level_id"
           ],
+          "tableTo": "levels",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "people_guardian_id_people_id_fk": {
           "name": "people_guardian_id_people_id_fk",
           "tableFrom": "people",
-          "tableTo": "people",
           "columnsFrom": [
             "guardian_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -228,26 +228,26 @@
         "credentials_person_id_people_id_fk": {
           "name": "credentials_person_id_people_id_fk",
           "tableFrom": "credentials",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "credentials_provider_subject_unique": {
           "name": "credentials_provider_subject_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "provider",
             "provider_subject"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -326,34 +326,34 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "sessions_person_id_people_id_fk": {
           "name": "sessions_person_id_people_id_fk",
           "tableFrom": "sessions",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "sessions_token_hash_unique": {
           "name": "sessions_token_hash_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "token_hash"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -401,26 +401,26 @@
         "roles_person_id_people_id_fk": {
           "name": "roles_person_id_people_id_fk",
           "tableFrom": "roles",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "roles_person_id_role_unique": {
           "name": "roles_person_id_role_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "person_id",
             "role"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -510,28 +510,28 @@
         "player_flags_person_id_people_id_fk": {
           "name": "player_flags_person_id_people_id_fk",
           "tableFrom": "player_flags",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "player_flags_created_by_people_id_fk": {
           "name": "player_flags_created_by_people_id_fk",
           "tableFrom": "player_flags",
-          "tableTo": "people",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -614,10 +614,10 @@
       "uniqueConstraints": {
         "seasons_name_unique": {
           "name": "seasons_name_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "name"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -706,27 +706,27 @@
         "slots_season_id_seasons_id_fk": {
           "name": "slots_season_id_seasons_id_fk",
           "tableFrom": "slots",
-          "tableTo": "seasons",
           "columnsFrom": [
             "season_id"
           ],
+          "tableTo": "seasons",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "slots_season_weekday_start_unique": {
           "name": "slots_season_weekday_start_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "season_id",
             "weekday",
             "start_time"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -782,39 +782,39 @@
         "slot_levels_slot_id_slots_id_fk": {
           "name": "slot_levels_slot_id_slots_id_fk",
           "tableFrom": "slot_levels",
-          "tableTo": "slots",
           "columnsFrom": [
             "slot_id"
           ],
+          "tableTo": "slots",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "slot_levels_level_id_levels_id_fk": {
           "name": "slot_levels_level_id_levels_id_fk",
           "tableFrom": "slot_levels",
-          "tableTo": "levels",
           "columnsFrom": [
             "level_id"
           ],
+          "tableTo": "levels",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "slot_levels_slot_level_unique": {
           "name": "slot_levels_slot_level_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "slot_id",
             "level_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -881,26 +881,26 @@
         "slot_capacities_slot_id_slots_id_fk": {
           "name": "slot_capacities_slot_id_slots_id_fk",
           "tableFrom": "slot_capacities",
-          "tableTo": "slots",
           "columnsFrom": [
             "slot_id"
           ],
+          "tableTo": "slots",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "slot_capacities_slot_position_unique": {
           "name": "slot_capacities_slot_position_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "slot_id",
             "position"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1004,39 +1004,39 @@
         "ice_sessions_slot_id_slots_id_fk": {
           "name": "ice_sessions_slot_id_slots_id_fk",
           "tableFrom": "ice_sessions",
-          "tableTo": "slots",
           "columnsFrom": [
             "slot_id"
           ],
+          "tableTo": "slots",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "ice_sessions_superseded_by_id_ice_sessions_id_fk": {
           "name": "ice_sessions_superseded_by_id_ice_sessions_id_fk",
           "tableFrom": "ice_sessions",
-          "tableTo": "ice_sessions",
           "columnsFrom": [
             "superseded_by_id"
           ],
+          "tableTo": "ice_sessions",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "ice_sessions_slot_date_unique": {
           "name": "ice_sessions_slot_date_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "slot_id",
             "date"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1094,26 +1094,26 @@
         "ice_session_capacities_ice_session_id_ice_sessions_id_fk": {
           "name": "ice_session_capacities_ice_session_id_ice_sessions_id_fk",
           "tableFrom": "ice_session_capacities",
-          "tableTo": "ice_sessions",
           "columnsFrom": [
             "ice_session_id"
           ],
+          "tableTo": "ice_sessions",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "ice_session_capacities_session_position_unique": {
           "name": "ice_session_capacities_session_position_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "ice_session_id",
             "position"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1197,40 +1197,40 @@
         "session_coaches_ice_session_id_ice_sessions_id_fk": {
           "name": "session_coaches_ice_session_id_ice_sessions_id_fk",
           "tableFrom": "session_coaches",
-          "tableTo": "ice_sessions",
           "columnsFrom": [
             "ice_session_id"
           ],
+          "tableTo": "ice_sessions",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "session_coaches_person_id_people_id_fk": {
           "name": "session_coaches_person_id_people_id_fk",
           "tableFrom": "session_coaches",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "session_coaches_session_person_role_unique": {
           "name": "session_coaches_session_person_role_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "ice_session_id",
             "person_id",
             "coach_role"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1304,28 +1304,28 @@
         "registration_carts_person_id_people_id_fk": {
           "name": "registration_carts_person_id_people_id_fk",
           "tableFrom": "registration_carts",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "registration_carts_season_id_seasons_id_fk": {
           "name": "registration_carts_season_id_seasons_id_fk",
           "tableFrom": "registration_carts",
-          "tableTo": "seasons",
           "columnsFrom": [
             "season_id"
           ],
+          "tableTo": "seasons",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -1440,51 +1440,51 @@
             }
           ],
           "isUnique": true,
-          "where": "\"registrations\".\"status\" in ('held', 'offered', 'confirmed')",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"registrations\".\"status\" in ('held', 'offered', 'confirmed')",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "registrations_cart_id_registration_carts_id_fk": {
           "name": "registrations_cart_id_registration_carts_id_fk",
           "tableFrom": "registrations",
-          "tableTo": "registration_carts",
           "columnsFrom": [
             "cart_id"
           ],
+          "tableTo": "registration_carts",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "registrations_person_id_people_id_fk": {
           "name": "registrations_person_id_people_id_fk",
           "tableFrom": "registrations",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "registrations_slot_id_slots_id_fk": {
           "name": "registrations_slot_id_slots_id_fk",
           "tableFrom": "registrations",
-          "tableTo": "slots",
           "columnsFrom": [
             "slot_id"
           ],
+          "tableTo": "slots",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -1579,39 +1579,39 @@
         "attendances_registration_id_registrations_id_fk": {
           "name": "attendances_registration_id_registrations_id_fk",
           "tableFrom": "attendances",
-          "tableTo": "registrations",
           "columnsFrom": [
             "registration_id"
           ],
+          "tableTo": "registrations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "attendances_ice_session_id_ice_sessions_id_fk": {
           "name": "attendances_ice_session_id_ice_sessions_id_fk",
           "tableFrom": "attendances",
-          "tableTo": "ice_sessions",
           "columnsFrom": [
             "ice_session_id"
           ],
+          "tableTo": "ice_sessions",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "attendances_registration_session_unique": {
           "name": "attendances_registration_session_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "registration_id",
             "ice_session_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1679,39 +1679,39 @@
         "extras_interest_person_id_people_id_fk": {
           "name": "extras_interest_person_id_people_id_fk",
           "tableFrom": "extras_interest",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "extras_interest_season_id_seasons_id_fk": {
           "name": "extras_interest_season_id_seasons_id_fk",
           "tableFrom": "extras_interest",
-          "tableTo": "seasons",
           "columnsFrom": [
             "season_id"
           ],
+          "tableTo": "seasons",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "extras_interest_person_season_unique": {
           "name": "extras_interest_person_season_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "person_id",
             "season_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1783,28 +1783,28 @@
         "claims_person_id_people_id_fk": {
           "name": "claims_person_id_people_id_fk",
           "tableFrom": "claims",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "claims_ice_session_id_ice_sessions_id_fk": {
           "name": "claims_ice_session_id_ice_sessions_id_fk",
           "tableFrom": "claims",
-          "tableTo": "ice_sessions",
           "columnsFrom": [
             "ice_session_id"
           ],
+          "tableTo": "ice_sessions",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -1911,41 +1911,41 @@
         "ledger_entries_person_id_people_id_fk": {
           "name": "ledger_entries_person_id_people_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "ledger_entries_reversal_of_id_ledger_entries_id_fk": {
           "name": "ledger_entries_reversal_of_id_ledger_entries_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "ledger_entries",
           "columnsFrom": [
             "reversal_of_id"
           ],
+          "tableTo": "ledger_entries",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "ledger_entries_created_by_people_id_fk": {
           "name": "ledger_entries_created_by_people_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "people",
           "columnsFrom": [
             "created_by"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -2007,25 +2007,25 @@
         "mandates_person_id_people_id_fk": {
           "name": "mandates_person_id_people_id_fk",
           "tableFrom": "mandates",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "mandates_mollie_mandate_id_unique": {
           "name": "mandates_mollie_mandate_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "mollie_mandate_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -2121,64 +2121,64 @@
         "payments_person_id_people_id_fk": {
           "name": "payments_person_id_people_id_fk",
           "tableFrom": "payments",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "payments_mandate_id_mandates_id_fk": {
           "name": "payments_mandate_id_mandates_id_fk",
           "tableFrom": "payments",
-          "tableTo": "mandates",
           "columnsFrom": [
             "mandate_id"
           ],
+          "tableTo": "mandates",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "payments_cart_id_registration_carts_id_fk": {
           "name": "payments_cart_id_registration_carts_id_fk",
           "tableFrom": "payments",
-          "tableTo": "registration_carts",
           "columnsFrom": [
             "cart_id"
           ],
+          "tableTo": "registration_carts",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "payments_claim_id_claims_id_fk": {
           "name": "payments_claim_id_claims_id_fk",
           "tableFrom": "payments",
-          "tableTo": "claims",
           "columnsFrom": [
             "claim_id"
           ],
+          "tableTo": "claims",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "payments_mollie_payment_id_unique": {
           "name": "payments_mollie_payment_id_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "mollie_payment_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -2246,15 +2246,15 @@
         "polls_ice_session_id_ice_sessions_id_fk": {
           "name": "polls_ice_session_id_ice_sessions_id_fk",
           "tableFrom": "polls",
-          "tableTo": "ice_sessions",
           "columnsFrom": [
             "ice_session_id"
           ],
+          "tableTo": "ice_sessions",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -2310,15 +2310,15 @@
         "poll_options_poll_id_polls_id_fk": {
           "name": "poll_options_poll_id_polls_id_fk",
           "tableFrom": "poll_options",
-          "tableTo": "polls",
           "columnsFrom": [
             "poll_id"
           ],
+          "tableTo": "polls",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -2380,52 +2380,52 @@
         "poll_votes_poll_id_polls_id_fk": {
           "name": "poll_votes_poll_id_polls_id_fk",
           "tableFrom": "poll_votes",
-          "tableTo": "polls",
           "columnsFrom": [
             "poll_id"
           ],
+          "tableTo": "polls",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "poll_votes_poll_option_id_poll_options_id_fk": {
           "name": "poll_votes_poll_option_id_poll_options_id_fk",
           "tableFrom": "poll_votes",
-          "tableTo": "poll_options",
           "columnsFrom": [
             "poll_option_id"
           ],
+          "tableTo": "poll_options",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "poll_votes_person_id_people_id_fk": {
           "name": "poll_votes_person_id_people_id_fk",
           "tableFrom": "poll_votes",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "poll_votes_poll_person_unique": {
           "name": "poll_votes_poll_person_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "poll_id",
             "person_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -2492,27 +2492,27 @@
         "notification_preferences_person_id_people_id_fk": {
           "name": "notification_preferences_person_id_people_id_fk",
           "tableFrom": "notification_preferences",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "notification_preferences_person_channel_category_unique": {
           "name": "notification_preferences_person_channel_category_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "person_id",
             "channel",
             "category"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -2589,15 +2589,15 @@
         "notification_log_person_id_people_id_fk": {
           "name": "notification_log_person_id_people_id_fk",
           "tableFrom": "notification_log",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -2663,25 +2663,25 @@
         "push_tokens_person_id_people_id_fk": {
           "name": "push_tokens_person_id_people_id_fk",
           "tableFrom": "push_tokens",
-          "tableTo": "people",
           "columnsFrom": [
             "person_id"
           ],
+          "tableTo": "people",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "push_tokens_token_unique": {
           "name": "push_tokens_token_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "token"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -2696,10 +2696,10 @@
   },
   "enums": {},
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},
