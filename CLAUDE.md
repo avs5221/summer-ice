@@ -138,6 +138,42 @@ Next.js auto-loads `.env*` files from `apps/web/`, not the repo root — so
 `apps/web/.env.local`, which is unrelated to the root file of the same name despite sharing
 a filename. See `apps/web/README.md` and `apps/web/app/lib/supabase-client.ts`.
 
+### Vercel doesn't use these names at all
+
+`DATABASE_URL` and `DIRECT_URL` are this repo's own local convention — nothing on Vercel is
+named that. The Supabase–Vercel integration injects its own names into the Vercel
+environment: **`POSTGRES_URL`** (pooled, the `DATABASE_URL` equivalent) and
+**`POSTGRES_URL_NON_POOLING`** (direct, the `DIRECT_URL` equivalent). This caused a real
+build failure (`Error: DATABASE_URL is not set`) before `packages/db/env.ts` learned to fall
+back to the integration's names when the local-convention name isn't set. **Never rename
+`POSTGRES_URL` / `POSTGRES_URL_NON_POOLING` in the Vercel dashboard** to match the local
+convention — the integration resyncs on its own schedule and silently overwrites a manual
+rename back to its own names, so "fixing" it that way doesn't stay fixed.
+
+**Preview and Development scopes in Vercel are deliberately left OFF the integration.**
+Turning them on would sync production credentials — including the service role key and the
+database password — into those scopes, which Supabase's own guidance advises against. Don't
+add `DATABASE_URL` / `DIRECT_URL` manually for those scopes either as a workaround; that's
+the identical mistake made by hand instead of by the integration.
+
+**Consequence: Production is currently the only environment with a working database
+connection** — Preview deployments have no database credentials at all right now, so
+anything in `apps/web` that reads the database will fail there, not just on Vercel's build.
+This is acceptable *only* because there is no real data yet. Before January registration
+opens, this needs feature branches plus Supabase Branching, so each Preview deployment gets
+its own isolated per-branch credentials instead of either sharing production's or having
+none. See `docs/ARCHITECTURE.md` §10 and §15.
+
+### `git push` is the actual deploy trigger
+
+Vercel builds on push, not on commit. Claude Code commits locally but does not push —
+pushing to `origin` is a deliberate step the human takes at the end of a session, not
+something to do unprompted. This matters here specifically because unpushed commits are
+invisible to Vercel: seven commits once accumulated locally, unpushed, across several
+sessions, which meant Vercel kept rebuilding and redeploying a stale commit for days while
+newer local work sat unseen. If a Vercel deployment looks stale, check `git log` against
+`git log origin/main` before assuming the build itself is broken.
+
 ## TypeScript
 
 **Always run `npx tsc --noEmit` from the repo root — project-wide — never against an

@@ -10,6 +10,24 @@ export const metadata: Metadata = {
   description: "Summer ice hockey in Leiden. Ten hours a week, register by the hour.",
 };
 
+// force-dynamic, deliberately: this page reads live fill counts, and
+// docs/ARCHITECTURE.md §8 ("The one cacheable page, and the rule that
+// protects it") requires those counts be fetched fresh per request, never
+// baked into a cached/prerendered HTML response — a stale baked-in count
+// reproduces the exact "site says a slot is open, form says it's locked"
+// bug this project exists to fix. Next would otherwise statically prerender
+// "/" at build time (it has no dynamic params or uncached request data to
+// force the switch on its own), which both bakes in stale numbers AND
+// queries the database at build time, when Vercel's build environment may
+// not even have the database env vars available.
+//
+// Do not "optimise" this back to static. If this page's marketing content
+// (schedule, prices, copy) needs to cache while the fill numbers stay live,
+// the correct refinement is a static shell with the fill list inside a
+// Suspense boundary — see docs/ARCHITECTURE.md §8 for that as a recorded,
+// not-yet-needed option, not a static export here.
+export const dynamic = "force-dynamic";
+
 // This is the first page reading real data — see docs/DOMAIN-MODEL.md §9
 // and packages/core/slot-fill.ts. Fill numbers are fetched fresh on every
 // render (never cached, never baked into a static response — see

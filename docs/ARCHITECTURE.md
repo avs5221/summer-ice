@@ -383,6 +383,10 @@ Those two facts fight each other. The rule: **fill counts are fetched client-sid
 
 Everything above the fill numbers on that page — schedule, levels, prices, copy — caches freely.
 
+**Current implementation: the whole page is `export const dynamic = "force-dynamic"`** (`apps/web/app/page.tsx`) — the simple correct fix, and sufficient at this scale. It means the marketing content above the fill numbers is re-rendered per request too, even though nothing about it needs to be.
+
+**Recorded option, not built:** a static shell with the fill list inside a `<Suspense>` boundary would let the marketing content cache while only the fill numbers stream in dynamically — Next's Partial Prerendering shape. This is a genuine refinement, not a requirement; the traffic this page sees does not currently justify the added complexity. If page-render cost or TTFB on the marketing content ever becomes a real problem, this is the first thing to reach for — not a reason to move the fill numbers back into a cached response.
+
 ---
 
 ## 9. Email
@@ -442,13 +446,15 @@ Vercel's own environment variable store, set per **Production**, **Preview** and
 
 | Variable | Production | Preview | Development (Vercel CLI) |
 |---|---|---|---|
-| `DATABASE_URL` (pooler) | prod Supabase | prod Supabase (shared project — see Environments above) | local Docker |
-| `DIRECT_URL` (direct) | **not set in Vercel at all** | **not set in Vercel at all** | local Docker |
+| `POSTGRES_URL` (pooler) | prod Supabase — **the Supabase–Vercel integration's own name, not `DATABASE_URL`** | not set — Preview and Development scopes are deliberately left off the integration, see below | not set |
+| `POSTGRES_URL_NON_POOLING` (direct) | prod Supabase — same integration | not set, same reason | not set |
 | `NEXT_PUBLIC_SUPABASE_URL` | prod project URL | prod project URL | prod project URL — it's public, either works |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | prod anon key | prod anon key | prod anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | set once §7 (Auth) needs it | set once §7 needs it | not needed locally yet |
 
-**`DIRECT_URL` is deliberately absent from Vercel, in every environment, not merely unused.** §5 already says migrations run from a local machine or CI, never the Vercel build — leaving the variable out of Vercel entirely makes that structural rather than a convention someone has to remember. A build or a route handler that tried to use it would fail on a missing variable instead of silently reaching the direct connection from inside a serverless function, which is exactly the pooler-bypass gotcha §5 warns about.
+**Correction, discovered by an actual failed build rather than assumed:** an earlier draft of this table said Vercel exposes `DATABASE_URL` / `DIRECT_URL` directly. It doesn't — those are this repo's own local-convention names (`.env.local`, `.env.production`, see `CLAUDE.md` → "Environment files"). The Supabase–Vercel integration injects its own names, `POSTGRES_URL` and `POSTGRES_URL_NON_POOLING`, and **does not honor a manual rename in the dashboard** — it resyncs on its own schedule and overwrites one. `packages/db/env.ts` resolves `DATABASE_URL`, falling back to `POSTGRES_URL`, and `DIRECT_URL`, falling back to `POSTGRES_URL_NON_POOLING` — local convention first, production integration name as the fallback, never the other way around.
+
+**Preview and Development scopes are deliberately left off the integration**, not an oversight — see `CLAUDE.md` → "Environment files" for the full reasoning (the integration would sync the service role key and database password into those scopes, which Supabase itself advises against). Do not add `DATABASE_URL` / `DIRECT_URL` manually for those scopes either — same mistake, done by hand instead of by the integration. Consequence: **Production is currently the only environment with a working database connection** — Preview builds that touch the database will fail until feature branches plus Supabase Branching are set up (tracked in `CLAUDE.md` and §15), which is acceptable only pre-launch, with no real data at stake.
 
 **`NEXT_PUBLIC_*` variables are inlined into the client bundle at build time — unavoidable, not a bug.** Everything else in the table above is read at runtime from `process.env` in server-only code and never reaches the client bundle. This is the resolution of the original bug list's "Vercel's build cache inlining stale environment variable values": verified by web search, August 2026, a `NEXT_PUBLIC_*` value really is compiled into the JS bundle at build time, and a redeploy that reuses Vercel's build cache reuses that stale compiled output rather than re-reading the new value. **After changing any `NEXT_PUBLIC_*` variable, redeploy without the existing build cache** — the dashboard's redeploy dialog has a checkbox for this, or `vercel --force` — otherwise the old value ships silently. "Never inline configuration at build time," the original rule, still holds without exception for every other variable; it's specifically the public ones that need this extra discipline instead of being exempt from the rule.
 
