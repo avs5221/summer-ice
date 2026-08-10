@@ -1,21 +1,28 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import {
-  EXTRAS_CLAIMS,
-  SEASON,
-  SLOTS,
-  WAITLISTS,
-  formatEuros,
-  formatTime,
-  seasonFill,
-} from "~/lib/fake-data";
+import { dbPooled } from "@summerice/db";
+import { getSlotFillOverview } from "@summerice/core";
+import { SEASON, formatEuros } from "~/lib/fake-data";
+import { SlotFillRow } from "./slot-fill-row";
 
 export const metadata: Metadata = {
   title: "Summer Ice — 2026 Season",
   description: "Summer ice hockey in Leiden. Ten hours a week, register by the hour.",
 };
 
-export default function Home() {
+// This is the first page reading real data — see docs/DOMAIN-MODEL.md §9
+// and packages/core/slot-fill.ts. Fill numbers are fetched fresh on every
+// render (never cached, never baked into a static response — see
+// docs/ARCHITECTURE.md §8, "the one cacheable page"), then the client picks
+// up live updates from there via SlotFillRow's useLiveFill.
+async function loadSlotFill() {
+  const db = dbPooled();
+  return db.transaction((tx) => getSlotFillOverview(tx));
+}
+
+export default async function Home() {
+  const slotFill = await loadSlotFill();
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-950 dark:text-white">Summer Ice</h1>
@@ -73,70 +80,9 @@ export default function Home() {
           Live fill per position. A full slot is still shown, with a waitlist.
         </p>
         <ul className="mt-3 divide-y divide-gray-200 dark:divide-gray-800">
-          {SLOTS.map((slot) => {
-            const fill = seasonFill(slot.id);
-            const skaterFull = fill.skater >= slot.capacity.skater;
-            const goalieFull = fill.goalie >= slot.capacity.goalie;
-            const isFull = skaterFull && goalieFull;
-            const waitlist = WAITLISTS[slot.id];
-            const claims = EXTRAS_CLAIMS.filter((c) => c.slotId === slot.id);
-
-            return (
-              <li key={slot.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="font-medium text-gray-950 dark:text-white">
-                    {slot.weekdayLabel} {formatTime(slot.startTime)}–{formatTime(slot.endTime)}
-                    {" · "}
-                    <span className="font-normal text-gray-600 dark:text-gray-400">{slot.label}</span>
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    <span className={skaterFull ? "font-semibold text-amber-700 dark:text-amber-500" : undefined}>
-                      {fill.skater}/{slot.capacity.skater} skaters
-                    </span>
-                    {" · "}
-                    <span
-                      className={
-                        goalieFull
-                          ? "font-semibold text-red-700 dark:text-red-500"
-                          : fill.goalie < slot.capacity.goalie
-                            ? "text-red-600 dark:text-red-400"
-                            : undefined
-                      }
-                    >
-                      {fill.goalie}/{slot.capacity.goalie} goalies
-                    </span>
-                    {isFull && waitlist && (
-                      <span className="ml-2 text-gray-500 dark:text-gray-500">
-                        · Full — {waitlist.length} on the waitlist
-                      </span>
-                    )}
-                    {claims.length > 0 && (
-                      <span className="ml-2 text-gray-500 dark:text-gray-500">
-                        · {claims.length} extra spot claimed this week
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-shrink-0">
-                  {isFull ? (
-                    <Link
-                      href="/register"
-                      className="text-sm font-medium text-gray-700 underline hover:text-gray-950 dark:text-gray-300 dark:hover:text-white"
-                    >
-                      Full — join waitlist
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/register"
-                      className="text-sm font-medium text-gray-700 underline hover:text-gray-950 dark:text-gray-300 dark:hover:text-white"
-                    >
-                      Register
-                    </Link>
-                  )}
-                </div>
-              </li>
-            );
-          })}
+          {slotFill.map((slot) => (
+            <SlotFillRow key={slot.slotId} slot={slot} />
+          ))}
         </ul>
       </section>
     </main>

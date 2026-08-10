@@ -1,12 +1,12 @@
-// Seeds reference data and the real 2026 season, per docs/DOMAIN-MODEL.md
-// §1 ("The actual 2026 slots" — use this, not an invented schedule) and §2
-// (levels). Idempotent — safe to re-run, via ON CONFLICT DO NOTHING keyed
-// on each table's unique constraint.
+// Seeds reference data, the real 2026 season, and its dated ice_sessions,
+// per docs/DOMAIN-MODEL.md §1 ("The actual 2026 slots" — use this, not an
+// invented schedule) and §2 (levels). Idempotent — safe to re-run, via ON
+// CONFLICT DO NOTHING keyed on each table's unique constraint.
 //
-// Deliberately does NOT seed ice_sessions / ice_session_capacities /
-// session_coaches, or any people/credentials/roles rows — generating 22
-// weeks x 10 slots of dated occurrences is a date-generation algorithm
-// (domain logic), out of scope for a schema-and-seed-only session.
+// Deliberately does NOT seed ice_session_capacities, session_coaches, or
+// any people/credentials/roles/registrations rows — those need real
+// domain logic (per-occurrence capacity overrides, coach assignment, the
+// registration flow itself) this session doesn't build.
 //
 //   pnpm db:seed
 import { eq } from "drizzle-orm";
@@ -15,6 +15,7 @@ import { eq } from "drizzle-orm";
 // docs/ARCHITECTURE.md §5 and client.ts.
 import { dbDirect, type Db } from "./client.ts";
 import {
+  iceSessions,
   levels,
   seasons,
   slotCapacities,
@@ -182,6 +183,68 @@ async function seedSlotCapacitiesAndLevels(
   }
 }
 
+// 22 dated occurrences per slot — DOMAIN-MODEL §1: "~30 March – 30 August,
+// 22 weeks". Written as explicit +02:00 (CEST) timestamps rather than local
+// JS Date arithmetic: EU DST starts the last Sunday of March (2026-03-29,
+// one day before this season's own start date) and ends the last Sunday of
+// October, well after this season ends (2026-08-30) — so every session in
+// this specific season falls in CEST with no mid-season transition to get
+// wrong. This is the same fixed-offset approach the season's own
+// registrationOpensAt already uses above, not a new pattern.
+const SEASON_UTC_OFFSET = "+02:00";
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d;
+}
+
+// First occurrence of `isoWeekday` (1 = Monday .. 7 = Sunday, matching
+// slots.weekday) on or after `from`. Works in UTC calendar days throughout
+// — see SEASON_UTC_OFFSET above.
+function firstOccurrenceOnOrAfter(from: Date, isoWeekday: number): Date {
+  const fromIsoWeekday = ((from.getUTCDay() + 6) % 7) + 1; // JS Sunday=0 -> ISO Sunday=7
+  const diff = (isoWeekday - fromIsoWeekday + 7) % 7;
+  return addDays(from, diff);
+}
+
+function formatDateOnly(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+async function seedIceSessions(
+  db: Db,
+  slotRows: Array<{ id: string; weekday: number; startTime: string; endTime: string }>,
+  season: { startDate: string; weekCount: number },
+) {
+  const seasonStart = new Date(`${season.startDate}T00:00:00Z`);
+
+  const rows: Array<{
+    slotId: string;
+    date: string;
+    startAt: Date;
+    endAt: Date;
+    status: "scheduled";
+  }> = [];
+
+  for (const slotRow of slotRows) {
+    const first = firstOccurrenceOnOrAfter(seasonStart, slotRow.weekday);
+    for (let week = 0; week < season.weekCount; week++) {
+      const dateStr = formatDateOnly(addDays(first, week * 7));
+      rows.push({
+        slotId: slotRow.id,
+        date: dateStr,
+        startAt: new Date(`${dateStr}T${slotRow.startTime}${SEASON_UTC_OFFSET}`),
+        endAt: new Date(`${dateStr}T${slotRow.endTime}${SEASON_UTC_OFFSET}`),
+        status: "scheduled",
+      });
+    }
+  }
+
+  await db.insert(iceSessions).values(rows).onConflictDoNothing({ target: [iceSessions.slotId, iceSessions.date] });
+  return rows.length;
+}
+
 async function main(): Promise<void> {
   const db = dbDirect();
 
@@ -214,6 +277,17 @@ async function main(): Promise<void> {
       `  ${WEEKDAY_NAMES[slotRow.weekday]} ${slotRow.startTime}-${slotRow.endTime} "${slotRow.label}" (${def?.sessionType}) — ${capSummary}${provisional}`,
     );
   }
+
+  const sessionCount = await seedIceSessions(db, slotRows, season);
+  const [firstUpcoming] = await db
+    .select({ slotId: iceSessions.slotId, startAt: iceSessions.startAt })
+    .from(iceSessions)
+    .orderBy(iceSessions.startAt)
+    .limit(1);
+  console.log(
+    `\n[seed] ice_sessions: ${sessionCount} generated (${slotRows.length} slots × ${season.weekCount} weeks).` +
+      (firstUpcoming ? ` Earliest: ${firstUpcoming.startAt.toISOString()} (slot ${firstUpcoming.slotId}).` : ""),
+  );
 
   process.exit(0);
 }

@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@summerice/contracts": "workspace:*",
-    "@summerice/db": "workspace:*"
+    "@summerice/db": "workspace:*",
+    "drizzle-orm": "0.45.2"
   },
   "devDependencies": {
     "@types/node": "26.2.0",

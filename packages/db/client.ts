@@ -40,3 +40,10 @@ export function dbDirect() {
 }
 
 export type Db = ReturnType<typeof dbPooled>;
+
+// The transaction handle every packages/core function takes as its first
+// argument — see docs/ARCHITECTURE.md §4.1 and .claude/rules/core.md.
+// Derived structurally from Db's own `.transaction()` callback rather than
+// naming drizzle's internal generic type, so it stays correct across
+// drizzle-orm versions without hand-tracking its exports.
+export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];

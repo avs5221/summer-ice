@@ -3,10 +3,16 @@
 // Subscribes to the live fill broadcast for one slot and keeps its skater
 // and goalie counts current with no refresh and no user interaction — see
 // docs/DOMAIN-MODEL.md §9 ("live fill is a product feature") and
-// packages/db/migrations/0004_live_fill_broadcast.sql, which is the
+// packages/db/migrations/0005_live_fill_broadcast.sql, which is the
 // trigger side of this: it broadcasts on `slot-fill:<slotId>` on the
 // 'fill' event, as a PUBLIC channel, whenever a registration or a
 // slot_capacities row changes.
+//
+// Callers must pass a referentially-stable `initialFill` (e.g. memoized, or
+// sourced from a stable parent prop) — see this hook's own reset logic
+// below, which relies on identity to distinguish "a genuinely new
+// server-rendered value arrived" from "this component just re-rendered for
+// an unrelated reason".
 //
 // IMPORTANT — this cannot be exercised against local Docker Postgres.
 // realtime.send() only exists on a real Supabase project (see the
@@ -50,15 +56,27 @@ function isBroadcastPayload(value: unknown): value is BroadcastPayload {
 }
 
 export function useLiveFill(slotId: string, initialFill: LiveFill): LiveFill {
-  const [state, setState] = useState(() => ({ slotId, fill: initialFill }));
+  // `seen` tracks the last (slotId, initialFill) pair we've already reset
+  // for — kept separate from `fill` itself. Comparing `fill` directly
+  // against `initialFill` (as an earlier version of this hook did) means
+  // that after the very first broadcast updates `fill`, `fill` and
+  // `initialFill` permanently disagree — on a stable prop reference that
+  // re-triggers the reset on every subsequent render, silently discarding
+  // the live value; on a caller that passes a fresh object literal each
+  // render (as this hook's own contract does not forbid) it's an infinite
+  // "Too many re-renders" loop, since every render sees a new identity and
+  // resets. Tracking what we've already reset for avoids both.
+  const [seen, setSeen] = useState({ slotId, initialFill });
+  const [fill, setFill] = useState(initialFill);
 
   // Reset synchronously during render when the slot (or a fresh
   // server-rendered value for it) changes, rather than in the effect below
   // — the React-endorsed way to adjust state in response to a prop change
   // without the extra render a setState-in-effect would cause. See
   // https://react.dev/learn/you-might-not-need-an-effect
-  if (state.slotId !== slotId || state.fill !== initialFill) {
-    setState({ slotId, fill: initialFill });
+  if (seen.slotId !== slotId || seen.initialFill !== initialFill) {
+    setSeen({ slotId, initialFill });
+    setFill(initialFill);
   }
 
   useEffect(() => {
@@ -67,7 +85,7 @@ export function useLiveFill(slotId: string, initialFill: LiveFill): LiveFill {
       .channel(`slot-fill:${slotId}`, { config: { private: false } })
       .on("broadcast", { event: "fill" }, ({ payload }: { payload: unknown }) => {
         if (!isBroadcastPayload(payload) || payload.slotId !== slotId) return;
-        setState((s) => ({ ...s, fill: { skater: payload.skater, goalie: payload.goalie } }));
+        setFill({ skater: payload.skater, goalie: payload.goalie });
       })
       .subscribe();
 
@@ -79,5 +97,5 @@ export function useLiveFill(slotId: string, initialFill: LiveFill): LiveFill {
     };
   }, [slotId]);
 
-  return state.fill;
+  return fill;
 }
