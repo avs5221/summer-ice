@@ -3,12 +3,15 @@
 // transaction (packages/core/waitlist.ts) — no orchestration needed here,
 // unlike the release route.
 //
-// Same temporary auth gap as the other routes in this directory: no
-// session check on who's allowed to decline this particular offer.
+// Ownership check, same pattern and same reasoning as
+// apps/web/app/api/registrations/[id]/release/route.ts: only the offer's
+// own person, or an admin, may decline it.
+import { eq } from "drizzle-orm";
 import { declineOffer } from "@summerice/core";
 import { registrationIdParamSchema } from "@summerice/contracts";
-import { dbPooled } from "@summerice/db";
+import { dbPooled, registrations } from "@summerice/db";
 import { internalErrorResponse, isNotFoundError } from "~/lib/api-errors";
+import { requireOwnerOrRole } from "~/lib/auth";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -22,6 +25,23 @@ export async function POST(_request: Request, { params }: RouteParams) {
   }
 
   const db = dbPooled();
+
+  const [existing] = await db
+    .select({ personId: registrations.personId })
+    .from(registrations)
+    .where(eq(registrations.id, parsedId.data));
+  if (!existing) {
+    return Response.json({ error: "registration not found" }, { status: 404 });
+  }
+
+  const auth = await requireOwnerOrRole(existing.personId, "admin");
+  if (!auth.ok) {
+    return Response.json(
+      { error: auth.reason === "unauthenticated" ? "authentication required" : "forbidden" },
+      { status: auth.reason === "unauthenticated" ? 401 : 403 },
+    );
+  }
+
   try {
     const result = await db.transaction((tx) => declineOffer(tx, { registrationId: parsedId.data }));
     if (result.outcome === "not_offered") {

@@ -557,3 +557,121 @@ cleaned up afterward — see `STATE.md` for the exact sequence.
 **Build order phase 3 (`ARCHITECTURE.md` §12–13) is done as of this
 entry.** Phase 4 (auth) is next, not optional — it's what closes the
 security gap this session's route layer opened on purpose.
+
+---
+
+### 2026-08-10 — Phase 4, first slice: Supabase Auth, session handling, and closing the registration routes' security gap
+
+"Start there" — phase 4 (`ARCHITECTURE.md` §7), previously "decided, not
+implemented." First slice, not the whole phase: password auth end to end,
+session handling, `credentials`/`roles` provisioning and lookup, and —
+the actual point — the three season-registration routes (previous
+session) rewired to real identity, closing the gap they were built with
+on purpose.
+
+**Verified `@supabase/ssr` guidance at implementation time rather than
+from memory, per §7's own warning that this SDK moves fast.** Fetched
+Supabase's own docs via MCP `search_docs` (139KB of current material,
+digested via a subagent to keep it out of main context) and cross-checked
+the more surprising finding — Next.js renamed `middleware.ts` to
+`proxy.ts` in v16.0.0 — directly against this repo's installed `next`
+package (`node_modules/next/dist/docs/.../proxy.md`), not just a search
+result, since a naming-convention claim that consequential deserved a
+primary source. Both confirmed current: `createServerClient`/
+`createBrowserClient` use `getAll`/`setAll` cookies now (not the older
+three-method `get`/`set`/`remove` pattern still floating around in older
+tutorials), and `getClaims()` — not `getSession()`, not even `getUser()`
+— is Supabase's current recommended call for protecting pages/routes
+(`getSession()` never re-validates; `getUser()` is for when you need a
+fresh server-confirmed record, not for the yes/no check itself).
+
+**Correction to `ARCHITECTURE.md` §7's own prose:** it said a credentials
+row gets `provider = 'supabase'`. The schema's actual four-value enum
+(`password`/`google`/`apple`/`email_link`) is more specific and is what's
+actually used — `'supabase'` isn't a value the check constraint even
+allows. Loose phrasing in an implementation-design paragraph, not a real
+disagreement between the doc and the schema; corrected in place.
+
+**Found and documented, not fixed: `sessions` (DOMAIN-MODEL §2) is a
+self-hosted-plan relic nothing uses.** It's a hand-rolled `token_hash`/
+`revoked_at` session table, designed for the plan this repo moved away
+from before Supabase Auth was chosen — §7 already said to use Supabase
+Auth's own refresh-token flow "rather than reimplementing it," it just
+never revisited the table that reimplementation would have been. Supabase
+Auth's own JWT/cookie session (via `@supabase/ssr`) is what phase 4
+actually uses; `sessions` is migrated, empty, and unread by anything built
+this session. Left in the schema rather than dropped — dropping a
+migrated table is a bigger, separate decision than building auth is —
+but flagged in both `DOMAIN-MODEL.md` and `ARCHITECTURE.md` so a future
+session doesn't wire it in out of habit.
+
+**Design calls made without a second direct instruction, each with
+reasoning recorded inline where the decision lives:**
+
+- `getCurrentPerson()`/`requireOwnerOrRole()` (`apps/web/app/lib/auth.ts`)
+  compose a validated Supabase session with a domain-side `people` lookup
+  (`packages/core/identity.ts`) — split so `apps/mobile` can reuse the
+  domain half unchanged later, matching how every other domain concern in
+  this repo is split from its web-layer caller.
+- `ensurePersonForAuthUser` provisions inside `signUp()`'s own action
+  (using `data.user.id`, populated immediately regardless of whether email
+  confirmation is pending) rather than waiting for an active session —
+  confirmed necessary, not just theoretical caution: this project's real
+  Supabase Auth settings do require confirmation (verified directly, see
+  below), so a session-gated provisioning path would never have fired for
+  a real signup.
+- `proxy.ts` refreshes the session cookie only — no redirect-based route
+  gating. Nothing in `apps/web` is role-gated yet (every page is still
+  fake-data), and Next's own data-security guide and `proxy.md`'s own
+  warning are explicit that a proxy/page-level check never extends to a
+  nested Server Action or route handler regardless — so gating there now
+  would be dead weight, not defense in depth, until there's an actual
+  protected route tree to redirect away from.
+- The registration routes' ownership check (`requireOwnerOrRole`, release
+  and decline) is a plain `SELECT` on the target registration's
+  `person_id` before calling `packages/core` — judged as HTTP-layer
+  authorization plumbing, not the capacity/money/state-transition domain
+  logic `.claude/rules/web-routes.md` reserves for `packages/core`.
+
+**Verified, not just written:**
+
+- 4 new integration tests (`packages/core/test/identity.test.ts`, 18
+  total in `packages/core`), real local Postgres, no mocks:
+  `ensurePersonForAuthUser` provisions on first call and is idempotent on
+  a second call for the same subject; `getPersonForAuthSubject` returns
+  null for an unlinked subject; `getPersonRoles`/`personHasRole` reflect
+  a real `roles` row.
+- The actual security fix, through the real request pipeline: `curl`
+  against `POST /api/registrations` with no session cookie now returns
+  `401`, where it previously succeeded. Same against `/release` and
+  `/decline` with a **real** registration id (so the check reaches the
+  ownership branch, not just short-circuits on "not found") — also `401`.
+- Supabase Auth itself, live: a direct `supabase.auth.signUp()` call
+  against the real project succeeded and revealed a real, useful fact —
+  this project requires email confirmation (`session: null` on signup) —
+  confirming the signup action's two-branch design (redirect home vs.
+  redirect to check-your-email) isn't hypothetical. `@example.com`
+  addresses are rejected by Supabase's own email validation
+  (`email_address_invalid`) — worth knowing before reaching for that
+  domain in a future test. Test user deleted from `auth.users` afterward
+  via the Supabase MCP; no orphaned test data left in either database.
+
+**Not verified, and said so rather than implied otherwise:** an actual
+browser submitting the signup/login forms and landing on a real session.
+Next's Server Actions use React's RSC action-reference wire protocol, not
+a plain form POST — the same `curl`-based approach that worked for last
+session's plain `app/api/*` routes doesn't reach a `'use server'` action.
+No browser-automation tool (Playwright/Chromium) was available this
+session, and the previous session's headless-Chromium setup (`apt-get
+download` + `dpkg-deb -x`, no root) didn't persist into this one. Recorded
+as a real, named gap in `STATE.md` rather than papered over with the
+adjacent things that *were* verified (the Supabase call, the DB logic,
+the pages rendering) standing in for it.
+
+**Scoped out on purpose, not forgotten:** Google/Apple OAuth (needs
+external provider console setup this session can't do unattended),
+dependent promotion and guardian-acts-for-dependent authorization,
+multi-provider identity merging, and wiring the real `/register` UI to
+the now-working `holdCart` route — everything up to and including this
+session still only reaches `packages/core` via `curl` and tests, not a
+person clicking through the actual site.

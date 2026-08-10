@@ -5,3 +5,4 @@ export * from "./slot-fill.ts";
 export * from "./capacity-lock.ts";
 export * from "./registration.ts";
 export * from "./waitlist.ts";
+export * from "./identity.ts";

@@ -111,7 +111,9 @@ Rules:
 >
 > Age is self-reported either way, so a date of birth would buy no verification — only more personal data to hold and protect. And a dependent coming of age needs no system nudge; they can simply create their own account when they want one, or stay in the family account indefinitely.
 
-### `sessions`
+### `sessions` — schema exists, not the actual session mechanism (found 2026-08-10)
+
+**Stale relative to §7's own Supabase Auth decision, kept here as a record of what's migrated, not what's used.** This table is the self-hosted plan's hand-rolled session design; it predates the Supabase Auth pivot and was never revisited when that decision landed. `ARCHITECTURE.md` §7 is explicit that Supabase Auth's own JWT/cookie session (via `@supabase/ssr`) is what's actually authoritative, and phase 4's implementation uses exactly that — nothing reads or writes this table. Left in the schema rather than dropped (dropping a migrated table is more disruptive than leaving one unused), but a future session should not wire it into anything on the assumption that its presence in the schema means it's load-bearing.
 
 Long-lived, revocable credentials. One table serves both clients — a web cookie session and a native refresh token have the same shape and differ only in lifetime.
 

@@ -3,23 +3,24 @@
 // serialises the result. No domain logic here — see
 // .claude/rules/web-routes.md and docs/ARCHITECTURE.md §4.1.
 //
-// SECURITY GAP, TEMPORARY AND KNOWN: Supabase Auth doesn't exist yet
-// (ARCHITECTURE §7, phase 4 — this route is phase 6-shaped plumbing built
-// ahead of it, on direct instruction). personId comes straight from the
-// request body, unverified against any session, because there is no
-// session to verify it against. Anyone who can reach this route can hold
-// a cart as any person id they choose. This is acceptable only because
-// nothing here is deployed for real registration and no real money or
-// real people's data is at stake yet — it must not go live, and this
-// route must not be wired into real player-facing UI, until a
-// session-derived identity replaces the body-supplied personId. Tracked
-// in docs/STATE.md's open questions.
+// personId comes from the caller's own authenticated session
+// (getCurrentPerson), never from the request body — closing the gap
+// flagged when this route was first built (see docs/DECISIONS.md,
+// 2026-08-10, for the history: this route predates auth by design,
+// built ahead of phase 4 on direct instruction, with the gap tracked
+// rather than silently accepted).
 import { holdCart } from "@summerice/core";
 import { holdCartRequestSchema } from "@summerice/contracts";
 import { dbPooled } from "@summerice/db";
 import { internalErrorResponse } from "~/lib/api-errors";
+import { requireCurrentPerson } from "~/lib/auth";
 
 export async function POST(request: Request) {
+  const auth = await requireCurrentPerson();
+  if (!auth.ok) {
+    return Response.json({ error: "authentication required" }, { status: 401 });
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -34,7 +35,9 @@ export async function POST(request: Request) {
 
   const db = dbPooled();
   try {
-    const result = await db.transaction((tx) => holdCart(tx, parsed.data));
+    const result = await db.transaction((tx) =>
+      holdCart(tx, { personId: auth.person.personId, seasonId: parsed.data.seasonId, lines: parsed.data.lines }),
+    );
     return Response.json(result, { status: 201 });
   } catch (err) {
     return internalErrorResponse("api/registrations POST", err);

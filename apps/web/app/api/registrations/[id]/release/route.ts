@@ -6,13 +6,20 @@
 // promoteWaitlist; it's a cheap no-op there (`no_capacity`/`empty_queue`),
 // simpler than branching on which kind of release this was.
 //
-// Same temporary auth gap as apps/web/app/api/registrations/route.ts:
-// no session check on who's allowed to release this particular
-// registration. Anyone who knows a registration id can withdraw it.
+// Ownership check, closing the gap flagged when this route was first
+// built (docs/DECISIONS.md, 2026-08-10): only the registration's own
+// person, or an admin, may release it — DOMAIN-MODEL §2's role table
+// ("admin: everything") and §4's "revocation is human-only" (an admin
+// removing someone is an ordinary withdrawn transition, same as
+// self-service). The ownership lookup itself is a plain SELECT, not
+// domain logic — .claude/rules/web-routes.md's line is about capacity/
+// money/state-transition logic, not "which row does this id belong to."
+import { eq } from "drizzle-orm";
 import { promoteWaitlist, releaseRegistration } from "@summerice/core";
 import { registrationIdParamSchema } from "@summerice/contracts";
-import { dbPooled } from "@summerice/db";
+import { dbPooled, registrations } from "@summerice/db";
 import { internalErrorResponse, isNotFoundError } from "~/lib/api-errors";
+import { requireOwnerOrRole } from "~/lib/auth";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -26,6 +33,23 @@ export async function POST(_request: Request, { params }: RouteParams) {
   }
 
   const db = dbPooled();
+
+  const [existing] = await db
+    .select({ personId: registrations.personId })
+    .from(registrations)
+    .where(eq(registrations.id, parsedId.data));
+  if (!existing) {
+    return Response.json({ error: "registration not found" }, { status: 404 });
+  }
+
+  const auth = await requireOwnerOrRole(existing.personId, "admin");
+  if (!auth.ok) {
+    return Response.json(
+      { error: auth.reason === "unauthenticated" ? "authentication required" : "forbidden" },
+      { status: auth.reason === "unauthenticated" ? 401 : 403 },
+    );
+  }
+
   try {
     const result = await db.transaction(async (tx) => {
       const released = await releaseRegistration(tx, { registrationId: parsedId.data });

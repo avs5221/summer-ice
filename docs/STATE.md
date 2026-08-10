@@ -4,51 +4,60 @@ Mechanical and factual. Regenerated at the end of every session per `CLAUDE.md`'
 session ritual. If this contradicts what a session prompt assumes, the prompt is
 probably stale — stop and check, don't work around it.
 
-**Last verified:** 2026-08-10, by reading the repo, querying local Postgres,
-running `npx tsc --noEmit` and `pnpm lint:all` project-wide, running the
-`packages/core` integration test suite against real local Postgres
-(`node --test`, no mocks), driving the three new API routes end-to-end
-against a running dev server with `curl` and hand-inserted fixture rows,
-and running the concurrency load-test harness twice against real local
-Postgres — the actual phase-3 gate, not the earlier small-scale sanity
-test. All passed.
+**Last verified:** 2026-08-10, by reading the repo, querying local Postgres
+and the real Supabase project, running `npx tsc --noEmit` and
+`pnpm lint:all` project-wide, running the `packages/core` integration
+test suite against real local Postgres (`node --test`, no mocks,
+including 4 new identity tests), running the concurrency load-test
+harness, driving the three registration routes end-to-end with `curl`
+against a running dev server both before and after wiring in real auth
+(confirming the security gap actually closed — an unauthenticated request
+against a real registration id now gets 401, not a successful action),
+and a real `supabase.auth.signUp()` call against the live Supabase Auth
+service to confirm it's reachable and correctly configured. All passed.
+**Not verified: an actual browser driving the signup/login forms through
+Next's Server Action wire protocol** — no browser-automation tool was
+available this session; see "Not verified" below.
 
 ---
 
 ## Last commit
 
 This file is regenerated as part of the same commit it describes, so it
-can't name its own hash in advance — check `git log -1`. That commit
-closes out build-order phase 3 (`ARCHITECTURE.md` §12–13): the route
-layer for season registration (`apps/web/app/api/registrations/**`), a
-correction to waitlist decline/expiry semantics (removes the person from
-the queue rather than re-queuing them — was wrong in the previous commit,
-caught and fixed same-session), and the load-test harness itself, run and
-passing.
+can't name its own hash in advance — check `git log -1`. That commit lands
+the first slice of build-order phase 4 (`ARCHITECTURE.md` §7): password
+sign-up/sign-in/sign-out via Supabase Auth, session handling
+(`@supabase/ssr`), the `credentials`/`roles` provisioning and lookup layer
+in `packages/core`, and — the actual point of doing this now — the three
+season-registration routes from the previous commit rewired to real
+session identity, closing the security gap they shipped with on purpose.
 
 ## What exists, per package
 
 | Package | One line |
 |---|---|
-| `packages/db` | Drizzle schema (27 tables), 7 migrations (added `seasons.offer_window_minutes`), seed script (`seed` and `seed:prod`), env/guard-host scripts, realtime health check. `dbDirectPooled(max)` added to `client.ts` for scripts needing real concurrency (the load-test harness). No `outbox` table yet |
-| `packages/core` | `slot-fill.ts` (live fill display), `capacity-lock.ts` (the shared `FOR UPDATE` lock + live-count helpers), `registration.ts` (`holdCart`, `confirmCart`, `releaseRegistration`), `waitlist.ts` (`promoteWaitlist`, `declineOffer`). 14 integration tests in `packages/core/test/`, plus `load-test/season-registration.ts` — a separate, on-demand harness (`pnpm --filter @summerice/core run load-test`), not part of the ordinary test run. No attendance or extras-claim functions yet; no accept-offer function (creating the one-line cart on acceptance — see `DOMAIN-MODEL.md` §4, still open) |
-| `packages/contracts` | `registration.ts` — Zod request schemas for the registration routes (`holdCartRequestSchema`, `registrationIdParamSchema`). First real content in this package |
-| `apps/web` | Next.js App Router. Five UI routes unchanged from before (fake-data, wave-1). **New:** `app/api/registrations/` (`POST`, hold a cart), `app/api/registrations/[id]/release/` (`POST`, withdraw + auto-promote next), `app/api/registrations/[id]/decline/` (`POST`, decline a waitlist offer). All three are thin callers into `packages/core`, per `.claude/rules/web-routes.md`. **No `confirm` route exists, deliberately** — `ARCHITECTURE.md` §4.5 restricts confirmation to the Mollie webhook, which doesn't exist yet (phase 5); exposing it as a plain route now would let anyone confirm a registration without paying |
+| `packages/db` | Drizzle schema (27 tables), 7 migrations, seed scripts, env/guard-host scripts, realtime health check, `dbDirectPooled(max)`. No `outbox` table yet. **Found this session:** the `sessions` table (`token_hash`, `revoked_at`) is a self-hosted-plan relic nothing uses — Supabase Auth's own JWT/cookie session is authoritative. Left migrated, not dropped; see `ARCHITECTURE.md` §7 and `DOMAIN-MODEL.md` §2 |
+| `packages/core` | `slot-fill.ts`, `capacity-lock.ts`, `registration.ts`, `waitlist.ts` (season-registration concurrency core, phase 3, done). **New:** `identity.ts` — `ensurePersonForAuthUser` (the `credentials` insert on first sign-in, idempotent), `getPersonForAuthSubject`, `getPersonRoles`, `personHasRole`. 18 integration tests total (4 new), plus the on-demand `load-test/season-registration.ts` harness. No attendance or extras-claim functions; no accept-offer function; no dependent-promotion function |
+| `packages/contracts` | `registration.ts` (unchanged in shape except `personId` removed from `holdCartRequestSchema` — see below) plus **new** `identity.ts` (`signupRequestSchema`, `loginRequestSchema`) |
+| `apps/web` | Five UI routes still fake-data, wave-1, unchanged. Registration API routes (`app/api/registrations/**`, built last session) now call `~/lib/auth`'s `requireCurrentPerson`/`requireOwnerOrRole` instead of trusting a body-supplied `personId` — **the hold route's request schema no longer accepts `personId` at all**, it's taken from the session. **New:** `app/lib/supabase/server.ts` + `browser.ts` (the `@supabase/ssr` client factories — distinct from the pre-existing `app/lib/supabase-client.ts`, which stays the public, unauthenticated Realtime-only client, on purpose), `proxy.ts` (Next 16's renamed `middleware.ts` — session-cookie refresh only, no redirect gating), `app/lib/auth.ts` (`getCurrentPerson`/`requireCurrentPerson`/`requireOwnerOrRole`), `app/signup/`, `app/login/`, `app/lib/auth-actions.ts` (logout) |
 | `apps/mobile` | Does not exist — not scaffolded, per plan (Phase 4/12) |
 
-### ⚠ The new routes are unauthenticated — a real, known, temporary gap
+### The registration routes' security gap is closed for the case tested
 
-Supabase Auth doesn't exist yet (`ARCHITECTURE.md` §7, phase 4). The hold
-route takes `personId` straight from the request body; release and decline
-take a registration id from the URL — neither is checked against any
-session, because there is no session mechanism to check against. **Anyone
-who can reach these routes can act as any person.** This is acceptable only
-because nothing is deployed for real registration and no real money or
-real people's data is at stake. These routes must not be wired into
-real player-facing UI, and must not go live, until a session-derived
-identity replaces the body-supplied `personId`. Each route file has this
-same warning inline; recorded here too so it isn't missed by only reading
-code.
+The gap flagged when `app/api/registrations/**` was first built (previous
+session) — `personId` trusted from the request body, no session check —
+is closed: `POST /api/registrations` now takes the person from
+`getCurrentPerson()`, and release/decline both check the target
+registration's owner against the session (or an `admin` role) via
+`requireOwnerOrRole` before calling into `packages/core`. Confirmed live:
+an unauthenticated `curl` against a real registration id now returns `401
+{"error":"authentication required"}` where it previously succeeded.
+**What's still open:** dependents can't act through a guardian yet
+(`requireOwnerOrRole` only knows "is this the resource's own person, or
+an admin" — no guardian-for-dependent path), and nothing in `apps/web`'s
+UI actually calls these routes with a real session cookie yet (no
+signed-in registration flow exists, just the API layer + a bare
+signup/login form).
 
 ## Database
 
@@ -82,11 +91,16 @@ just noted here.** Every table on the Supabase project has RLS *enabled*
 with zero policies (a Supabase platform default — `grep` for `ROW LEVEL
 SECURITY` across `packages/db/migrations/*.sql` returns nothing; this
 codebase never set it). Harmless today because `dbDirect()`/`dbPooled()`
-connect as the `postgres` role, which bypasses RLS entirely. **Not harmless
-once Supabase Auth ships**: a browser client querying a table directly with
-a user's JWT will be denied everything, silently, and it will look like an
-application bug rather than an RLS message. See `ARCHITECTURE.md` §5 for the
-full reasoning and the two options for when that day comes.
+connect as the `postgres` role, which bypasses RLS entirely. **Supabase
+Auth now exists (this session) — still harmless, because the specific
+trigger condition still hasn't happened**: a browser client querying a
+table directly with a user's JWT, which nothing in `apps/web` does. Auth
+sessions here only ever inform a server-side check (`app/lib/auth.ts`)
+that then queries via Drizzle/`postgres`, same as before. The day this
+stops being harmless is the day something in the browser calls
+`supabase-js` against a table directly with the session's JWT — watch for
+that, not for "Auth exists" as the trigger. See `ARCHITECTURE.md` §5 for
+the full reasoning and the two options for when that day comes.
 
 ## Verified
 
@@ -100,35 +114,38 @@ What has genuinely been proven, versus what merely compiles:
 - **`getSlotFillOverview` against the real Supabase project.** Run directly (not through the web app) after seeding: returns all 10 rows, each with a correct next-upcoming `ice_session`, matching the seeded schedule and today's date. This confirms the data and the query are right; it is **not** the same as the browser-level live-fill check above, which is still unproven end-to-end.
 - **Concurrency core — `hold`/`confirm`/`release`/`promote`/`declineOffer` for season registration, against real local Postgres.** 14 `node:test` integration tests, no mocks: mixed carts, a full slot waitlisting instead of failing, waitlist queue position ordering, re-registering an already-held slot coming back as a clean outcome, idempotent webhook confirmation, a release freeing its spot for the next holder, `promoteWaitlist` picking the earliest queued registration, `declineOffer` removing the decliner from the queue entirely (not re-queuing — corrected this session, see below) and promoting the next person in the same call, and `promoteWaitlist` sweeping a lapsed offer out of the queue the same way. Plus one small real-concurrency sanity test — 8 independent connections racing a 1-capacity slot.
 - **The load-test harness — built, run, and passing twice.** `packages/core/load-test/season-registration.ts`, `ARCHITECTURE.md` §12's actual gate: 300 concurrent multi-line carts (each the hot 20-capacity slot plus 1-2 slots drawn from a shared 4-slot pool, so contention is real and overlapping, not just on one row), fired via `Promise.allSettled` against a dedicated connection pool (`dbDirectPooled`, new this session in `packages/db/client.ts`). Both runs: **exactly 20 held, exactly 280 waitlisted, 0 rejected calls, 0 partial baskets, 0 duplicate active registrations, database counts agreeing with what the calls reported.** Local Postgres's `max_connections` (100) turned out to be the real ceiling to design around — the first attempt at a 50-connection pool failed with "sorry, too many clients already" against a running `next dev` server and a couple of stray `psql` sessions, a real finding worth knowing before raising the pool size or running this alongside other heavy local Postgres use; settled on 30.
-- **The three registration routes, driven end-to-end with `curl` against a running dev server.** Hand-inserted fixture rows (a season, a slot, a 20-capacity `slot_capacities` row, three people) via direct SQL, then: `POST /api/registrations` → 201 with a held line and the correct price; `POST /api/registrations/:id/release` → `withdrawn` + `promoted: empty_queue`; a manually-inserted `offered` row plus a `waitlisted` row, then `POST /api/registrations/:id/decline` → `declined` + the waitlisted person promoted in the same response, confirmed against the database directly (decliner `withdrawn`, promoted person `offered`). All fixture data cleaned up afterward.
+- **The three registration routes, driven end-to-end with `curl` against a running dev server.** Hand-inserted fixture rows via direct SQL, then: `POST /api/registrations` → 201 with a held line and the correct price; `POST /api/registrations/:id/release` → `withdrawn` + `promoted: empty_queue`; a manually-inserted `offered` row plus a `waitlisted` row, then `POST /api/registrations/:id/decline` → `declined` + the waitlisted person promoted in the same response, confirmed against the database directly. All fixture data cleaned up afterward.
+- **Identity provisioning and lookup (`packages/core/identity.ts`), against real local Postgres.** 4 `node:test` integration tests, no mocks: `ensurePersonForAuthUser` provisions a new `people` + `credentials` row on first call and is idempotent on a second call for the same subject (no duplicate person); `getPersonForAuthSubject` returns null for an unlinked subject; `getPersonRoles`/`personHasRole` correctly reflect an inserted `roles` row and default to empty/false.
+- **The registration routes' auth check, against the real request pipeline (not just unit tests).** `curl -X POST /api/registrations` with no session cookie → `401 {"error":"authentication required"}` (previously: 201, since `personId` was trusted from the body). Same check against `/api/registrations/:id/release` and `/decline` with a **real** registration id (so the check reaches the ownership branch, not just "not found") → also 401. Confirms the gap flagged in the previous session's `STATE.md` is actually closed at the HTTP layer, not just in code that looks right.
+- **Supabase Auth itself is reachable and correctly configured for this project.** A direct `supabase.auth.signUp()` call (plain `@supabase/supabase-js`, the real project, not local) succeeded and returned the expected shape — confirmed email confirmation is **required** for this project (`session: null` on signup, `email_confirmed_at` unset), which is real, useful information: it means `apps/web/app/signup/actions.ts`'s "if `data.session`, go home; otherwise, check-your-email" branch is the branch that actually fires in practice, not a hypothetical. Test user deleted from `auth.users` afterward via the Supabase MCP.
 
 **Not verified / not built at all:**
 
-- Accepting a waitlist offer — creating the one-line `registration_carts` row on acceptance is a payment-flow function belonging with `holdCart`/`confirmCart`, not built this session.
-- No extras/claims functions (`claims` table, `ice_session_capacities` locking) — phase 11, not phase 3.
-- No auth (Supabase Auth behind `credentials`) — decided in `ARCHITECTURE.md` §7, not implemented. **The route layer built this session has no session check as a direct consequence — see the flagged warning above.**
-- No outbox table, no Cron endpoints, no notification jobs — decided in `ARCHITECTURE.md` §6, not implemented. `promoteWaitlist`'s "notify" step (DOMAIN-MODEL §4, step 2) is a no-op right now for exactly this reason.
-- **The second load-test gate** (`ARCHITECTURE.md` §12, "Load testing against the real Supabase pooler") — this session's harness proves row-locking and capacity correctness against local Postgres only. It does not and cannot prove the Supabase transaction-mode pooler holds up under the same concurrency; that needs the real project and comes later (phase 9, before soft launch).
+- **An actual browser driving the signup/login forms.** Next's Server Actions use React's RSC action-reference wire protocol, not a plain form POST — not curl-able the way the earlier `app/api/*` routes were. No browser-automation tool (Playwright/Chromium) was set up this session; the previous session's headless-Chromium environment workaround (documented in `DECISIONS.md`, 2026-08-09/10) didn't persist into this one. What's verified instead: the pages render (200), the underlying Supabase Auth call works end-to-end (above), and the DB-side provisioning logic is proven by real-Postgres tests (above) — but nobody has watched a browser actually submit the signup form and land on a real session yet.
+- Google, Apple OAuth providers — password only. See `ARCHITECTURE.md` §7's "Not built yet" list for the full remainder (dependent promotion, guardian-acts-for-dependent authorization, email one-tap actions, multi-provider identity merging).
+- Accepting a waitlist offer — creating the one-line `registration_carts` row on acceptance is a payment-flow function belonging with `holdCart`/`confirmCart`, not built this session, though auth existing now removes the reason it was previously deferred.
+- No extras/claims functions (`claims` table, `ice_session_capacities` locking) — phase 11.
+- No outbox table, no Cron endpoints, no notification jobs — decided in `ARCHITECTURE.md` §6, not implemented.
+- **The second load-test gate** (`ARCHITECTURE.md` §12, "Load testing against the real Supabase pooler") — phase 3's harness proves row-locking and capacity correctness against local Postgres only; the real pooler needs its own gate later (phase 9).
 
 ## Not built yet — the next thing
 
-**Build order phase 3 is done** (`ARCHITECTURE.md` §12–13) — concurrency
-core, its integration tests, and the load-test gate all built and passing.
-Per the build order, phase 4 is next: **Auth (Supabase Auth behind
-`credentials`), family accounts, roles.** This isn't optional busywork
-before more registration features — it's what closes the security gap
-flagged above (unauthenticated routes trusting a body-supplied `personId`).
-`ARCHITECTURE.md` §7 has the design; nothing there is implemented yet.
+**Phase 4's first slice is done: password auth, sessions, role-gating
+plumbing, and the registration routes wired to real identity.** Not done:
+Google/Apple, family accounts/dependent promotion, and any UI that
+actually uses a signed-in session for something a player would recognize
+as "registering" (the wave-1 `/register` page is still fake-data and
+doesn't call the real routes yet). The natural next thing is picking one
+of those — most likely wiring `/register` to the real `holdCart` route
+behind a real signed-in session, since that's what makes phase 3 and this
+session's work actually reachable by a person instead of only by `curl`
+and tests.
 
-A second, smaller thread worth naming even though it's not next: accepting
-a waitlist offer (the one-line cart on acceptance, `DOMAIN-MODEL.md` §4) —
-a natural companion to `declineOffer`, but a payment-flow function that
-makes more sense once auth exists to know who's accepting.
+Accepting a waitlist offer (the one-line cart on acceptance,
+`DOMAIN-MODEL.md` §4) is a second, smaller thread — a natural companion to
+`declineOffer`, and no longer blocked on auth now that auth exists.
 
-**Blocked by:** nothing external for either thread. Auth needs
-`@supabase/ssr` wiring in `apps/web` and a `credentials` insert path, both
-design-complete per §7; accepting an offer needs nothing but a decision on
-whether to build it before or after auth lands.
+**Blocked by:** nothing external for either thread.
 
 ## Open questions needing a human decision
 

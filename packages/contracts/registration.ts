@@ -16,8 +16,13 @@ export const holdCartLineSchema = z.object({
   position: positionSchema,
 });
 
+// No personId here, on purpose — that comes from the caller's own
+// authenticated session (apps/web/app/lib/auth.ts's getCurrentPerson),
+// never from the request body. See the SECURITY note in
+// apps/web/app/api/registrations/route.ts's history for why: a
+// body-supplied personId was the original shape, closed once phase 4
+// (auth) landed.
 export const holdCartRequestSchema = z.object({
-  personId: z.uuid(),
   seasonId: z.uuid(),
   lines: z.array(holdCartLineSchema).min(1, "at least one line is required"),
 });

@@ -1,8 +1,14 @@
-// Auth sessions (not to be confused with `ice_sessions`). Not columned in
-// docs/DOMAIN-MODEL.md — this shape follows explicit direction: web/native
-// session tokens, soft-revoked rather than deleted, with no IP/user-agent/
-// device data since nothing in this system has identified a use for it (the
-// same reasoning behind storing no date of birth — see people.ts).
+// Auth sessions (not to be confused with `ice_sessions`). NOT the actual
+// session mechanism — a self-hosted-plan relic never revisited when auth
+// pivoted to Supabase Auth (found and documented 2026-08-10,
+// DOMAIN-MODEL.md §2 and ARCHITECTURE.md §7). Supabase Auth's own
+// JWT/cookie session (@supabase/ssr) is authoritative; nothing reads or
+// writes this table. Kept migrated rather than dropped, but do not wire
+// it into anything on the assumption its presence here means it's used.
+// Original rationale, for the record: web/native session tokens,
+// soft-revoked rather than deleted, with no IP/user-agent/device data
+// since nothing in this system identified a use for it (the same
+// reasoning behind storing no date of birth — see people.ts).
 import { sql } from "drizzle-orm";
 import { check, index, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { createdAt, id } from "./_columns.ts";
