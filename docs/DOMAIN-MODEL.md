@@ -348,16 +348,40 @@ defaults to 60. Per-season and admin-configurable, unlike the fixed
 before that migration, and 60 was a human decision made on the spot, not
 derived from anything written here.
 
-**Open, not yet implemented:** step 4's own mechanics. The state-machine
-diagram above shows `declined` and `offer_expired` both looping back
-toward `waitlisted`, but doesn't say whether the *same* registration
-row re-queues (and at what `waitlist_joined_at` — the original, which lets
-someone cycle back to the front immediately, or a fresh one, which sends
-them to the back) or is retired and a fresh waitlist entry would be needed.
-`packages/core`'s `promoteWaitlist` (as of the migration above) only
-implements step 2 — finding the earliest waitlisted row and offering it.
-Steps 3 and 4 need this resolved before they're built, not invented in
-`packages/core` on the day someone needs them.
+**Step 4, resolved 2026-08-10.** The state-machine diagram above shows
+`declined` and `offer_expired` both looping back toward `waitlisted` but
+never said whether the *same* registration row re-queues, and at what
+`waitlist_joined_at`. Asked directly: "if a waitlist spot is declined or
+expires, it moves to the next person in the waitlist" — the mechanism was
+left to implementation. Built as:
+
+- **Decline** (`packages/core/waitlist.ts`'s `declineOffer`) is an active
+  transition: `offered` → `waitlisted`, immediately followed by
+  `promoteWaitlist` in the *same* transaction, so the next person is
+  offered as part of one call, not a separate step a caller has to
+  remember. The decliner's row re-queues rather than retires (the
+  `registrations` status check constraint has no separate terminal value
+  for either `declined` or `offer_expired`, so re-queuing is what the
+  schema already committed to) — but at a **fresh** `waitlist_joined_at`,
+  the back of the queue, not the original one. Keeping the original
+  timestamp would let a single person cycle back to the front forever if
+  they're the only one waiting — a live loop, not a hypothetical.
+- **Expiry** is not an active transition anyone calls — nothing in
+  `packages/core` sweeps on a timer (no Cron/outbox yet). Instead,
+  `promoteWaitlist` sweeps any lapsed `offered` row for the (slot,
+  position) it's about to act on, back to `waitlisted` at the back of the
+  queue, as its first step, before finding who to offer next. Correctness
+  never depended on this sweep firing promptly (§7's computed-not-swept
+  formula already excludes a lapsed offer from "taken" regardless of its
+  stored status) — the sweep is bookkeeping, made to happen for free
+  wherever `promoteWaitlist` is next invoked for that key, whether that's
+  a decline elsewhere, an admin action, or eventually a Cron job.
+
+`packages/core`'s `promoteWaitlist` and `declineOffer` implement steps 1,
+2 and 4. **Step 3 — accepting an offer — is still not built**: creating the
+one-line `registration_carts` row belongs with `holdCart`/`confirmCart` as
+a payment-flow function, not a waitlist-mechanics one, and needs a route
+layer this session didn't build.
 
 Promotion is **never** a silent charge. Someone waitlisted in January may not want the slot in March. Notify, get acceptance, then charge. If the person has a stored payment mandate, acceptance can charge off-session in one tap.
 

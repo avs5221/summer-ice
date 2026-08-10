@@ -402,3 +402,64 @@ concurrent multi-line carts with overlapping slot sets against a
 deadlocks (`ARCHITECTURE.md` §12). That's the actual phase-3 gate; today's
 work is the mechanism it exercises, not the harness that proves it at
 scale.
+
+---
+
+### 2026-08-10 — Waitlist decline/expiry resolved: `declineOffer`, and expiry folded into `promoteWaitlist`
+
+Follow-up to the entry directly above, closing the one thing scoped out on
+purpose: what actually happens when a waitlist offer is declined or
+lapses. Asked directly rather than left open: **"if a waitlist spot is
+declined/expires, it moves to the next person in the waitlist. How you
+achieve that I leave to you."** Full reasoning in `DOMAIN-MODEL.md` §4;
+summary here.
+
+**Decision: decline calls promotion itself, in the same transaction —
+deliberately inconsistent with `releaseRegistration`'s composability
+stance.** `releaseRegistration` leaves promotion to the caller because
+withdrawal has many call sites and reasons, not all of which want instant
+promotion. A decline has exactly one purpose — hand the spot to whoever's
+next — so `declineOffer` calls `promoteWaitlist` internally rather than
+trusting every future caller to remember to chain the two. Recording the
+inconsistency explicitly so it doesn't read as an oversight later.
+
+**Decision: the decliner re-queues at a *fresh* `waitlist_joined_at`, not
+the original.** DOMAIN-MODEL's diagram didn't specify this, but keeping
+the original timestamp is a live loop bug, not just a fairness question:
+if that person is the only one waiting, they'd float straight back to the
+front the next time capacity opens, decline again, forever. Fresh
+timestamp sends them to the back, same as anyone rejoining a real queue.
+
+**Decision: no Cron sweep for expiry — folded into `promoteWaitlist`
+instead.** There's no outbox/Cron infrastructure yet (`STATE.md`), and
+correctness never depended on prompt sweeping anyway (`ARCHITECTURE.md`
+§4.2 — a lapsed offer already doesn't count as "taken," regardless of its
+stored status). So `promoteWaitlist` sweeps any lapsed `offered` row for
+the (slot, position) it's about to act on back to `waitlisted` — bookkeeping
+that happens for free wherever `promoteWaitlist` next runs for that key,
+whether that's a decline, an admin action, or eventually a real Cron job.
+
+**Bug caught by the new tests, not by review:** the sweep's first version
+set the re-queued row's `waitlist_joined_at` using SQL `now()`. Every other
+timestamp in `waitlist.ts` and `registration.ts` comes from JS
+`Date.now()`. Inside one long-running transaction, SQL `now()` is pinned to
+the transaction's *start* time — earlier than a `Date.now()` value written
+moments later within that same transaction — so a swept row could
+out-rank someone who'd genuinely been waiting longer, resurrecting exactly
+the "front of the queue forever" bug the fresh-timestamp decision above was
+supposed to prevent. The "sweeps a lapsed offer" test failed on the first
+run with the wrong registration promoted, not a crash — caught because the
+test asserted *which* person got promoted, not just that promotion
+happened. Fixed by sourcing the sweep's timestamp from `new Date()` like
+everywhere else in the module; the WHERE clause's own `now()` (a threshold
+check, "has this deadline passed," never compared against a JS-sourced
+value) was correct as originally written and didn't change.
+
+**Verified:** 3 new integration tests (14 total in `packages/core/test/`),
+covering decline-promotes-next-person, decline-on-a-non-offered-row, and
+the lapsed-offer sweep. `npx tsc --noEmit` and `pnpm lint:all` clean.
+
+**Still open:** accepting an offer (creating the one-line cart per
+DOMAIN-MODEL §4's "swap on acceptance" and payment-reuse design) — a
+payment-flow function belonging with `holdCart`/`confirmCart`, not built
+this session.

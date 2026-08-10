@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { slotCapacities } from "@summerice/db";
+import { registrations, slotCapacities } from "@summerice/db";
 import { eq } from "drizzle-orm";
 import { holdCart } from "../registration.ts";
-import { promoteWaitlist } from "../waitlist.ts";
+import { declineOffer, promoteWaitlist } from "../waitlist.ts";
 import { at, withRollback } from "./harness.ts";
 import { makePerson, makeSlotWithCapacity } from "./fixtures.ts";
 
@@ -51,5 +51,101 @@ void test("promoteWaitlist: empty_queue when capacity is open but nobody is wait
     const { slot } = await makeSlotWithCapacity(tx, "skater", 5);
     const result = await promoteWaitlist(tx, { slotId: slot.id, position: "skater" });
     assert.deepEqual(result, { outcome: "empty_queue" });
+  });
+});
+
+void test("declineOffer: moves the spot to the next person in the waitlist, in one transaction", async () => {
+  await withRollback(async (tx) => {
+    const { slot } = await makeSlotWithCapacity(tx, "skater", 0);
+    const alice = await makePerson(tx);
+    const bob = await makePerson(tx);
+    const carol = await makePerson(tx);
+
+    await holdCart(tx, { personId: alice.id, seasonId: slot.seasonId, lines: [{ slotId: slot.id, position: "skater" }] });
+    const bobHold = await holdCart(tx, { personId: bob.id, seasonId: slot.seasonId, lines: [{ slotId: slot.id, position: "skater" }] });
+    await holdCart(tx, { personId: carol.id, seasonId: slot.seasonId, lines: [{ slotId: slot.id, position: "skater" }] });
+
+    await tx.update(slotCapacities).set({ capacity: 1 }).where(eq(slotCapacities.slotId, slot.id));
+    const offered = await promoteWaitlist(tx, { slotId: slot.id, position: "skater" });
+    assert.equal(offered.outcome, "offered");
+    if (offered.outcome !== "offered") throw new Error("unreachable");
+
+    const aliceRegistrationId = offered.registrationId; // earliest joiner
+
+    const declined = await declineOffer(tx, { registrationId: aliceRegistrationId });
+    assert.equal(declined.outcome, "declined");
+    if (declined.outcome !== "declined") throw new Error("unreachable");
+
+    // Bob — next in line — got the offer, in the same call.
+    assert.equal(declined.promoted.outcome, "offered");
+    if (declined.promoted.outcome === "offered") {
+      const bobLine = at(bobHold.lines, 0);
+      assert.equal(bobLine.outcome, "waitlisted");
+      if (bobLine.outcome === "waitlisted") {
+        assert.equal(declined.promoted.registrationId, bobLine.registrationId);
+      }
+    }
+
+    // Alice is back in the queue, not retired — but at the BACK of it, not
+    // the front, so she isn't immediately re-offered the spot she just
+    // turned down. Carol joined before Alice declined, so Alice's fresh
+    // timestamp must land after Carol's original one.
+    const aliceRow = await tx.select({ status: registrations.status }).from(registrations).where(eq(registrations.id, aliceRegistrationId));
+    assert.equal(at(aliceRow, 0).status, "waitlisted");
+
+    const nextPromotion = await promoteWaitlist(tx, { slotId: slot.id, position: "skater" });
+    assert.equal(nextPromotion.outcome, "no_capacity"); // Bob's offer is still consuming the one open spot
+  });
+});
+
+void test("declineOffer: not_offered when the registration isn't currently offered", async () => {
+  await withRollback(async (tx) => {
+    const { slot } = await makeSlotWithCapacity(tx, "skater", 20);
+    const person = await makePerson(tx);
+    const held = await holdCart(tx, { personId: person.id, seasonId: slot.seasonId, lines: [{ slotId: slot.id, position: "skater" }] });
+    const line = at(held.lines, 0);
+    assert.equal(line.outcome, "held");
+    if (line.outcome !== "held") throw new Error("unreachable");
+
+    const result = await declineOffer(tx, { registrationId: line.registrationId });
+    assert.deepEqual(result, { outcome: "not_offered", registrationId: line.registrationId });
+  });
+});
+
+void test("promoteWaitlist: sweeps a lapsed offer back to the queue and promotes the next person", async () => {
+  await withRollback(async (tx) => {
+    const { slot } = await makeSlotWithCapacity(tx, "skater", 0);
+    const alice = await makePerson(tx);
+    const bob = await makePerson(tx);
+
+    await holdCart(tx, { personId: alice.id, seasonId: slot.seasonId, lines: [{ slotId: slot.id, position: "skater" }] });
+    const bobHold = await holdCart(tx, { personId: bob.id, seasonId: slot.seasonId, lines: [{ slotId: slot.id, position: "skater" }] });
+
+    await tx.update(slotCapacities).set({ capacity: 1 }).where(eq(slotCapacities.slotId, slot.id));
+    const offered = await promoteWaitlist(tx, { slotId: slot.id, position: "skater" });
+    assert.equal(offered.outcome, "offered");
+    if (offered.outcome !== "offered") throw new Error("unreachable");
+
+    // Simulate the offer lapsing — nobody responded before offer_expires_at.
+    await tx
+      .update(registrations)
+      .set({ offerExpiresAt: new Date(Date.now() - 1000) })
+      .where(eq(registrations.id, offered.registrationId));
+
+    const nextPromotion = await promoteWaitlist(tx, { slotId: slot.id, position: "skater" });
+    assert.equal(nextPromotion.outcome, "offered");
+    if (nextPromotion.outcome === "offered") {
+      const bobLine = at(bobHold.lines, 0);
+      assert.equal(bobLine.outcome, "waitlisted");
+      if (bobLine.outcome === "waitlisted") {
+        assert.equal(nextPromotion.registrationId, bobLine.registrationId); // not Alice — her offer just lapsed
+      }
+    }
+
+    const aliceRow = await tx
+      .select({ status: registrations.status })
+      .from(registrations)
+      .where(eq(registrations.id, offered.registrationId));
+    assert.equal(at(aliceRow, 0).status, "waitlisted"); // swept back, not left dangling as "offered"
   });
 });
