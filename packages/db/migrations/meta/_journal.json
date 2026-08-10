@@ -43,6 +43,13 @@
       "when": 1786336801745,
       "tag": "0005_live_fill_broadcast",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786361267093,
+      "tag": "0006_season_offer_window",
+      "breakpoints": true
     }
   ]
 }

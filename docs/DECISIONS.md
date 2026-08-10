@@ -320,3 +320,85 @@ landed in the previous session. If this symptom is reported again, it is
 very unlikely to be this mechanism — look at what's different about the
 report (which slot, which browser, logged in vs not, timing) before
 re-deriving the pipeline from scratch.
+
+---
+
+### 2026-08-10 — Concurrency core, phase 1: hold, confirm, release, promote for season registration
+
+Build order phase 3 (`ARCHITECTURE.md` §13), started. Scope deliberately
+bounded to what the load-test gate (§12) actually exercises — season
+registration against `registrations` and `slot_capacities` — not the extras
+`claims` path (phase 11) and not accepting/declining a waitlist offer
+(neither is needed to prove the lock holds under concurrent carts).
+
+**What shipped**, all in `packages/core`:
+
+- `capacity-lock.ts` — `lockSlotCapacities`, one statement locking every
+  `(slot, position)` a caller touches via `ORDER BY ... FOR UPDATE`, which
+  *is* the ascending-lock-order guarantee (`ARCHITECTURE.md` §4.3), not
+  just a display concern; `countActiveRegistrations`, the same live-fill
+  formula as `slot-fill.ts`, callable only after the lock is held.
+- `registration.ts` — `holdCart` (the mixed-cart function, DOMAIN-MODEL §4:
+  never fails on a full slot, waitlists instead), `confirmCart` (webhook-
+  driven, idempotent on cart status), `releaseRegistration` (withdraws,
+  deliberately doesn't auto-promote — composability is the caller's job).
+- `waitlist.ts` — `promoteWaitlist`, earliest-waitlisted → `offered`.
+
+**Decision: result shape is a discriminated union, not exceptions, for
+every expected domain outcome** (`held`/`waitlisted`/`already_registered`,
+`confirmed`/`already_confirmed`/`cart_expired`, `no_capacity`/`empty_queue`,
+etc.). Only genuine invariant violations (a missing `slot_capacities` row, a
+missing `INSERT ... RETURNING` row) throw. Not written down anywhere before
+this session; recording it here so a later function in this package doesn't
+invent a different convention.
+
+**Decision: `seasons.offer_window_minutes`, default 60, admin-configurable**
+(migration `0006_season_offer_window.sql`). `DOMAIN-MODEL.md` §4 specifies
+*that* a waitlist offer has an expiry but never how long — unlike the fixed
+10-minute hold window (§7), which the domain model does state. Asked the
+human directly rather than picking a number silently; answer was "1 hour
+for now, but configurable in the admin dashboard," which is why it's a
+per-season column rather than a `packages/core` constant, even though no
+admin UI reads or writes it yet.
+
+**Decision, scoped out on purpose: accepting/declining a waitlist offer.**
+`DOMAIN-MODEL.md` §4's "Waitlist promotion" describes what happens after
+`promoteWaitlist` — a one-line cart on accept, "swap on acceptance," and a
+decline/expiry path whose resulting persisted status is ambiguous from the
+docs as written (the state-machine diagram's `declined`/`offer_expired`
+arrows both loop back toward `waitlisted`, but whether that means the same
+row re-queues, and at what `waitlist_joined_at`, isn't stated). Building
+that now would mean inventing fairness-affecting behavior with real money
+attached, not implementing a spec. Left for a session where a human
+resolves it or the domain model is amended to say.
+
+**Found and fixed in passing:** the root `tsconfig.json`'s `include` glob
+(`packages/*/*.ts`) was only one directory level deep, so `packages/*/test/**`
+files were never reachable by `tsc --noEmit` as root files, and — since
+nothing else imports test files — never pulled in via the import graph
+either. `npx tsc --noEmit` had been silently not checking any test file in
+the repo (there were none until this session, which is how this went
+unnoticed). Changed to `packages/*/**/*.ts`, which also fixed the same gap
+for ESLint's `parserOptions.project` (it points at the same root
+`tsconfig.json`). Genuinely no test files existed before this session, so
+nothing was actually going unchecked in practice — but the gap itself
+predates this session and would have bitten the first `packages/db/test/`
+or `packages/contracts/test/` directory silently.
+
+**Verified:** 11 integration tests (`packages/core/test/*.test.ts`) against
+real local Postgres via `node:test`, no mocks — mixed carts, waitlisting,
+queue-position ordering, duplicate-registration prevention, idempotent
+confirmation, release freeing a spot for the next holder, and promotion
+picking the earliest queued registration. Plus one real-concurrency test
+(8 independent transactions/connections racing a 1-capacity slot via
+`Promise.all`, not a single rolled-back transaction) proving the row lock
+serializes actual concurrent connections, not just sequential calls sharing
+one transaction — a fast sanity check, not the load-test gate itself.
+`npx tsc --noEmit` and `pnpm lint:all` both clean project-wide.
+
+**Not done yet, and next:** the load-test harness itself — several hundred
+concurrent multi-line carts with overlapping slot sets against a
+20-capacity slot, asserting exactly 20 winners, no partial baskets, no
+deadlocks (`ARCHITECTURE.md` §12). That's the actual phase-3 gate; today's
+work is the mechanism it exercises, not the harness that proves it at
+scale.

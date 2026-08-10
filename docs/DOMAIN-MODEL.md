@@ -341,6 +341,24 @@ When capacity opens on a slot:
 3. On accept → charge → `confirmed`
 4. On decline or expiry → offer the next in line
 
+**How long the offer window is** — `seasons.offer_window_minutes`, added
+2026-08-10 (`packages/db/migrations/0006_season_offer_window.sql`),
+defaults to 60. Per-season and admin-configurable, unlike the fixed
+10-minute hold window (§7) — this section never specified a duration
+before that migration, and 60 was a human decision made on the spot, not
+derived from anything written here.
+
+**Open, not yet implemented:** step 4's own mechanics. The state-machine
+diagram above shows `declined` and `offer_expired` both looping back
+toward `waitlisted`, but doesn't say whether the *same* registration
+row re-queues (and at what `waitlist_joined_at` — the original, which lets
+someone cycle back to the front immediately, or a fresh one, which sends
+them to the back) or is retired and a fresh waitlist entry would be needed.
+`packages/core`'s `promoteWaitlist` (as of the migration above) only
+implements step 2 — finding the earliest waitlisted row and offering it.
+Steps 3 and 4 need this resolved before they're built, not invented in
+`packages/core` on the day someone needs them.
+
 Promotion is **never** a silent charge. Someone waitlisted in January may not want the slot in March. Notify, get acceptance, then charge. If the person has a stored payment mandate, acceptance can charge off-session in one tap.
 
 Acceptance creates a **one-line `registration_carts` row** rather than charging the registration directly, so promotion reuses the same payment and webhook path as ordinary registration. One route, not two kept in step.

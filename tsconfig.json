@@ -19,7 +19,7 @@
     "apps/web/app/**/*.ts",
     "apps/web/app/**/*.tsx",
     "apps/web/*.ts",
-    "packages/*/*.ts"
+    "packages/*/**/*.ts"
   ],
   "exclude": ["node_modules", "**/node_modules", "**/dist", "**/build", "**/.next"]
 }
