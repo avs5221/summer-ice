@@ -97,6 +97,18 @@
   font-size: 12px;
 }
 
+/* Same shape as .registerBtn — only the color changes, when the register
+ * page itself is what's active (see site-nav.tsx). */
+.registerBtnActive {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 7px 15px;
+  border-radius: 8px;
+  border: 0;
+  font-weight: 700;
+  font-size: 12px;
+}
+
 /* ─── Hero ─────────────────────────────────────────────────────────── */
 
 .hero {

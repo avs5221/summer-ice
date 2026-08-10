@@ -14,7 +14,7 @@ import styles from "./page.module.css";
 
 const STORAGE_KEY = "si-theme";
 
-export function ThemeToggle() {
+export function ThemeToggle({ size = 34 }: { size?: number }) {
   // Null until mounted: matches whatever the inline script already put on
   // <html>, rather than guessing and risking a hydration mismatch.
   const [dark, setDark] = useState<boolean | null>(null);
@@ -54,6 +54,7 @@ export function ThemeToggle() {
       title="Switch theme"
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       className={styles.themeToggle}
+      style={{ width: size, height: size }}
     >
       {isDark ? (
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">

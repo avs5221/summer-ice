@@ -56,29 +56,49 @@ button into a small icon button in the footer's link row. Both
 implemented; `npx tsc --noEmit` + `eslint` clean, headless-Chromium pass
 re-run, zero console errors. Full account in `DECISIONS.md`.
 
+**Same day, fifth pass:** `/register` restyled from the design project's
+`Register.dc.html` — the first design-import task on a page that already
+had real (fake-data-backed) interactive logic, not a blank slate.
+Restyled onto the design's row-state taxonomy (plain/chosen/stale/
+full/no-spots-for-me) and sticky-bar layout while keeping — and in one
+real case (the "stale" state, unreachable in the design's own static
+mock) *extending* — the existing hold/waitlist/contention-demo logic
+rather than replacing it with the design's inert seed-data version. New:
+`app/site-nav.tsx` (shared nav, now used by both `/` and `/register`),
+`app/register/register.module.css`. Rewrote `register-client.tsx` in
+full. `npx tsc --noEmit` + `eslint` clean; headless Chromium driven
+through real interaction (add/remove, role-mode switching, the
+contention demo against both a held and an unheld slot — confirming the
+"stale" path is real, not just plausible — dark mode, pay-to-confirm,
+420px mobile), zero console errors throughout. Full account in
+`DECISIONS.md`.
+
 ---
 
 ## Last commit
 
 This file is regenerated as part of the same commit it describes, so it
 can't name its own hash in advance — check `git log -1`. That commit
-re-syncs the homepage (`/`) against changes made to the "Summer Ice
-Landing" Claude Design project after the initial import: nav
+restyles `/register` from the design project's `Register.dc.html` — new
+row-state schedule table, role-pill group, sticky summary bar — on top
+of the existing fake-data hold/waitlist/contention logic (kept, not
+replaced), plus a shared `site-nav.tsx` now used by both `/` and
+`/register`. The commit before it re-synced the homepage (`/`) against
+changes made to the design project after the initial import: nav
 restructured (Home/How it works/Sign in/Register), theme toggle moved
-from a floating button into the footer. The commit before it was a
+from a floating button into the footer. The commit before *that* was a
 same-session fix: swapped in the real `logo-circle.png` (an earlier
 commit shipped a truncated one — see `DECISIONS.md`) and reverted a copy
 correction ("iDEAL" → back to "iDEAL or Wero," per Michael). The commit
-before *that* did the actual landing-page work: restyled the homepage
+before *that* did the original landing-page work: restyled the homepage
 from the design project — new nav/hero/schedule-table/footer, a
 site-wide class-based dark-mode toggle, still reading real live data
 exactly as before. The commit before *that* landed the first slice of
 build-order phase 4 (`ARCHITECTURE.md` §7): password sign-up/sign-in/
 sign-out via Supabase Auth, session handling (`@supabase/ssr`), the
-`credentials`/
-`roles` provisioning and lookup layer in `packages/core`, and the three
-season-registration routes rewired to real session identity, closing the
-security gap they shipped with on purpose.
+`credentials`/`roles` provisioning and lookup layer in `packages/core`,
+and the three season-registration routes rewired to real session
+identity, closing the security gap they shipped with on purpose.
 
 ## What exists, per package
 
@@ -87,7 +107,7 @@ security gap they shipped with on purpose.
 | `packages/db` | Drizzle schema (27 tables), 7 migrations, seed scripts, env/guard-host scripts, realtime health check, `dbDirectPooled(max)`. No `outbox` table yet. **Found this session:** the `sessions` table (`token_hash`, `revoked_at`) is a self-hosted-plan relic nothing uses — Supabase Auth's own JWT/cookie session is authoritative. Left migrated, not dropped; see `ARCHITECTURE.md` §7 and `DOMAIN-MODEL.md` §2 |
 | `packages/core` | `slot-fill.ts`, `capacity-lock.ts`, `registration.ts`, `waitlist.ts` (season-registration concurrency core, phase 3, done). **New:** `identity.ts` — `ensurePersonForAuthUser` (the `credentials` insert on first sign-in, idempotent), `getPersonForAuthSubject`, `getPersonRoles`, `personHasRole`. 18 integration tests total (4 new), plus the on-demand `load-test/season-registration.ts` harness. No attendance or extras-claim functions; no accept-offer function; no dependent-promotion function |
 | `packages/contracts` | `registration.ts` (unchanged in shape except `personId` removed from `holdCartRequestSchema` — see below) plus **new** `identity.ts` (`signupRequestSchema`, `loginRequestSchema`) |
-| `apps/web` | Registration API routes (`app/api/registrations/**`) call `~/lib/auth`'s `requireCurrentPerson`/`requireOwnerOrRole` instead of trusting a body-supplied `personId` — **the hold route's request schema no longer accepts `personId` at all**, it's taken from the session. `app/lib/supabase/server.ts` + `browser.ts` (the `@supabase/ssr` client factories — distinct from the pre-existing `app/lib/supabase-client.ts`, which stays the public, unauthenticated Realtime-only client, on purpose), `proxy.ts` (Next 16's renamed `middleware.ts` — session-cookie refresh only, no redirect gating), `app/lib/auth.ts` (`getCurrentPerson`/`requireCurrentPerson`/`requireOwnerOrRole`), `app/signup/`, `app/login/`, `app/lib/auth-actions.ts` (logout). `/register`, `/schedule` and `/admin` are still fake-data, wave-1. **New this session:** `/` restyled from the "Summer Ice Landing" Claude Design project — still `force-dynamic`, still reads `getSlotFillOverview()` for real, but now a real nav/hero/stat-band/schedule-table/footer instead of a bullet list (`app/page.module.css`, `app/theme-toggle.tsx`, `app/landing-slot-row.tsx`, replacing the now-deleted `app/slot-fill-row.tsx`). `app/components/nav.tsx` hides itself on `/` (the landing page has its own nav). `globals.css` gained the design's OKLCH token set and switched `dark:` to class strategy site-wide (`@custom-variant dark`); `layout.tsx` gained the theme-init inline script + `suppressHydrationWarning` on `<html>` that makes that safe — see `DECISIONS.md` |
+| `apps/web` | Registration API routes (`app/api/registrations/**`) call `~/lib/auth`'s `requireCurrentPerson`/`requireOwnerOrRole` instead of trusting a body-supplied `personId` — **the hold route's request schema no longer accepts `personId` at all**, it's taken from the session. `app/lib/supabase/server.ts` + `browser.ts` (the `@supabase/ssr` client factories — distinct from the pre-existing `app/lib/supabase-client.ts`, which stays the public, unauthenticated Realtime-only client, on purpose), `proxy.ts` (Next 16's renamed `middleware.ts` — session-cookie refresh only, no redirect gating), `app/lib/auth.ts` (`getCurrentPerson`/`requireCurrentPerson`/`requireOwnerOrRole`), `app/signup/`, `app/login/`, `app/lib/auth-actions.ts` (logout). `/schedule` and `/admin` are still fake-data, wave-1, unstyled. **This session:** `/` and `/register` both restyled from the "Summer Ice Landing" Claude Design project, sharing `app/site-nav.tsx`. `/` — still `force-dynamic`, still reads `getSlotFillOverview()` for real, now a real nav/hero/stat-band/schedule-table/footer instead of a bullet list (`app/page.module.css`, `app/theme-toggle.tsx`, `app/landing-slot-row.tsx`, replacing the deleted `app/slot-fill-row.tsx`). `/register` — still fake-data (`register-client.tsx` fully rewritten: role-state schedule table, sticky summary bar, `app/register/register.module.css`), but its existing hold/waitlist/contention-demo logic was kept and extended (real "stale" row state), not thrown out for the design's own inert static mock. `app/components/nav.tsx` hides itself on both `/` and `/register` (each has its own `SiteNav`). `globals.css` gained the design's OKLCH token set and switched `dark:` to class strategy site-wide (`@custom-variant dark`); `layout.tsx` gained the theme-init inline script + `suppressHydrationWarning` on `<html>` that makes that safe — see `DECISIONS.md` |
 | `apps/mobile` | Does not exist — not scaffolded, per plan (Phase 4/12) |
 
 ### The registration routes' security gap is closed for the case tested

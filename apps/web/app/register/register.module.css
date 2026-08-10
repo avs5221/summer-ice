@@ -1,0 +1,579 @@
+/* Register page — translated from the "Summer Ice Landing" Claude Design
+ * project (Register.dc.html), the same way app/page.module.css translated
+ * the landing page: real classes + media queries instead of the design's
+ * inline styles. Shared tokens (`.page`, `.eyebrow`) come from
+ * ../page.module.css; this file is what's specific to this page.
+ */
+
+.headerBand {
+  background: var(--sky-surface);
+  border-bottom: 1px solid var(--sky-border);
+}
+
+.headerBandInner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 20px 28px;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.main {
+  max-width: 1080px;
+  margin: 0 auto;
+  width: 100%;
+  /* Bottom padding clears the fixed sticky bar — see .stickyBar. */
+  padding: 32px 28px 140px;
+}
+
+.sectionHead {
+  margin-bottom: 18px;
+}
+
+.sectionTitle {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+/* ─── Position pill group ──────────────────────────────────────────── */
+
+.roleRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.roleLabel {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.rolePills {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg-subtle);
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+}
+
+.rolePill {
+  padding: 7px 20px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rolePill:hover {
+  color: var(--foreground);
+}
+
+.rolePillActive {
+  padding: 7px 20px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.roleNote {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+/* ─── Demo callout ─────────────────────────────────────────────────── */
+/* Not part of the source design — this repo's existing wave-1 demo for
+ * showing real-time contention without a backend. Kept and restyled
+ * rather than dropped; see register-client.tsx. */
+
+.demo {
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  background: var(--bg-subtle);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-cd);
+  font-size: 13px;
+}
+
+.demoText {
+  color: var(--muted-foreground);
+}
+
+.demoBtn {
+  margin-top: 8px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.demoBtn:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+
+.demoBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ─── Schedule table ───────────────────────────────────────────────── */
+
+.scheduleCard {
+  background: var(--card);
+  border-radius: 10px;
+  box-shadow: var(--shadow-cd-lg);
+  overflow: hidden;
+}
+
+.scheduleHead {
+  display: grid;
+  grid-template-columns: 104px 1fr 176px 92px 132px;
+  gap: 16px;
+  padding: 10px 24px;
+  background: var(--bg-subtle);
+  border-bottom: 1.5px solid var(--border);
+}
+
+.scheduleHeadCell {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.scheduleHeadCell.right {
+  text-align: right;
+}
+
+@media (max-width: 760px) {
+  .scheduleHead {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+    padding: 16px 20px !important;
+  }
+
+  .cellAvailability,
+  .cellPrice,
+  .cellAction {
+    text-align: left !important;
+  }
+
+  .stickyInner {
+    flex-wrap: wrap;
+  }
+
+  .stickyRight {
+    margin-left: 0 !important;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 104px 1fr 176px 92px 132px;
+  gap: 16px;
+  align-items: center;
+  padding: 0 24px;
+  min-height: 62px;
+  border-bottom: 1px solid var(--border);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover {
+  background: var(--bg-subtle);
+}
+
+.rowChosen {
+  composes: row;
+  background: var(--primary-lo);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.rowChosen:hover {
+  background: var(--primary-lo);
+}
+
+.rowStale {
+  composes: row;
+  background: oklch(0.577 0.245 27.325 / 0.07);
+  box-shadow: inset 3px 0 0 var(--destructive);
+}
+
+.rowStale:hover {
+  background: oklch(0.577 0.245 27.325 / 0.07);
+}
+
+.rowBlocked {
+  composes: row;
+  background-image: repeating-linear-gradient(-45deg, transparent 0 8px, var(--border) 8px 9px);
+}
+
+.rowBlocked:hover {
+  background-image: repeating-linear-gradient(-45deg, transparent 0 8px, var(--border) 8px 9px);
+}
+
+.dayLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin-bottom: 1px;
+}
+
+.dayLabelActive {
+  composes: dayLabel;
+  color: var(--primary);
+}
+
+.dayLabelStale {
+  composes: dayLabel;
+  color: var(--destructive);
+}
+
+.timeValue {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-feature-settings: "tnum" 1;
+}
+
+.levelName {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cellAvailability {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.availabilityDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.availabilityText {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  font-feature-settings: "tnum" 1;
+  white-space: nowrap;
+}
+
+.addedRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.addedRowWaitlisted {
+  composes: addedRow;
+  color: var(--sun-text-on-lo);
+}
+
+.staleNote {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--destructive);
+  white-space: nowrap;
+}
+
+.blockedBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: oklch(0.577 0.245 27.325 / 0.1);
+  color: var(--destructive);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.roleChipRow {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.roleChip {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.roleChip:hover {
+  color: var(--foreground);
+}
+
+.roleChipActive {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.roleChipDisabled {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 10.5px;
+  font-weight: 700;
+  opacity: 0.5;
+}
+
+.cellPrice {
+  text-align: right;
+  font-size: 14px;
+  font-weight: 700;
+  font-feature-settings: "tnum" 1;
+}
+
+.cellPriceMuted {
+  composes: cellPrice;
+  opacity: 0.4;
+}
+
+.cellAction {
+  text-align: right;
+}
+
+.addBtn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.addBtn:hover {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.removeBtn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1.5px solid var(--primary);
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.removeBtn:hover {
+  border-color: var(--destructive);
+  color: var(--destructive);
+}
+
+.removeBtnDestructive {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--destructive);
+  background: transparent;
+  color: var(--destructive);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.waitlistBtn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.waitlistBtn:hover {
+  border-color: var(--foreground);
+}
+
+.footnote {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  margin-top: 14px;
+}
+
+/* ─── Sticky summary bar ───────────────────────────────────────────── */
+
+.stickyBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  background: var(--card);
+  border-top: 1.5px solid var(--border);
+  box-shadow: 0 -6px 24px oklch(0 0 0 / 0.1);
+}
+
+.stickyInner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.stickyTotals {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.stickyTotal {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  font-feature-settings: "tnum" 1;
+}
+
+.stickyCount {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.stickySummary {
+  font-size: 12.5px;
+  color: var(--muted-foreground);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 460px;
+}
+
+.stickyRight {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.holdNote {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.continueBtn {
+  background: var(--foreground);
+  color: var(--background);
+  padding: 12px 26px;
+  border-radius: 9px;
+  border: 0;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.continueBtn:hover {
+  opacity: 0.88;
+}
+
+.continueBtnDisabled {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  padding: 12px 26px;
+  border-radius: 9px;
+  border: 0;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: not-allowed;
+  white-space: nowrap;
+}
+
+/* ─── Confirmed state ──────────────────────────────────────────────── */
+
+.confirmedBanner {
+  margin-top: 18px;
+  padding: 16px 20px;
+  background: var(--green-lo);
+  border: 1.5px solid var(--green);
+  border-radius: var(--radius-cd);
+}
+
+.confirmedTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--green);
+}
+
+.confirmedLine {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--foreground);
+  line-height: 1.6;
+}

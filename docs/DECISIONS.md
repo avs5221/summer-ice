@@ -898,3 +898,96 @@ Playwright `fullPage` capture artifact for `position: sticky` elements,
 not a real rendering bug; same class of thing as the floating-button
 artifact noted in the very first browser-verification pass this
 session.)
+
+### 2026-08-10 — `/register` restyled from `Register.dc.html`, wave-1 logic kept and extended
+
+Implemented the design project's `Register.dc.html` — the same "Summer
+Ice Landing" project, focused this time on the register page instead of
+`/`. Unlike the landing page, `/register` already had a real, working
+wave-1 interactive component (`register-client.tsx`: position selection,
+a basket with real holds/countdowns, waitlisting with queue position, a
+"simulate another player" contention demo) — this was a restyle of an
+existing feature, not a fresh implementation of a static mock.
+
+**Deliberately did not copy the design's own JS model.** `Register.dc.html`'s
+`RAW` seed array is static — adding a slot to its `picked` list never
+changes any displayed number, so its `stale` row state (`inBasket && mine
+=== 0`) is unreachable dead code in the mock; there's no interaction that
+ever produces it. This repo's whole point is atomic claiming under real
+contention (`CLAUDE.md`'s opening paragraph), so throwing that away to
+match the mockup exactly would have deleted the one thing worth keeping.
+Kept the existing fake-data-backed `available()`/hold/waitlist logic and
+fit the design's row-state taxonomy on top of it instead:
+
+- **Basket simplified from an array to one line per slot**
+  (`Record<slotId, BasketLine>`), matching what the design's `picked:
+  string[]` actually models (one entry per slot, not multiple positions
+  held simultaneously on the same slot) — a real simplification of the
+  prior model, not just a rename.
+- **"Stale" made real, not decorative:** a held line goes stale when
+  `takenByOthers(slot, position)` (season roster + the demo's simulated
+  extra — explicitly *excluding* the line's own hold, otherwise every
+  held line would trivially look stale the instant it's created) reaches
+  capacity. Reachable in practice: hold a slot, then run the contention
+  demo against it enough times, and the row now visibly flips to the
+  design's red "stale" variant with a real "Remove" action — the
+  literal race condition this app exists to make impossible once it's
+  a real backend, demonstrated as a UI state while it's still fake-data.
+- **Lapsed time-based holds are dropped from the basket at render time**
+  (`liveBasket`, a `useMemo` filter over `basket` keyed on `now`), not
+  mutated into state on every second's tick — expiry already means
+  "gone," and a dropped row just recomputes back to whatever state its
+  live availability implies (`plain`, `full`, etc.) rather than needing
+  its own "expired" visual the design doesn't have anywhere to put.
+- **Both "no spots left for my current position" and "no spots at all"
+  keep working "Waitlist →" buttons** — the design leaves both
+  undecorated (`<button>Waitlist →</button>`, no `onClick`, typical of a
+  design-tool mock), but this repo's existing waitlist-with-queue-position
+  feature was worth keeping functional rather than downgrading to
+  decoration to match the mock precisely.
+- **The design's itemized "Basket" section is gone entirely** — replaced,
+  as the design intends, by row-level state in the schedule table itself
+  plus the fixed sticky bottom bar (total, slot count, a one-line
+  summary, the theme toggle, "Hold & continue →"). The old separate
+  per-line countdown display went with it; the sticky bar's static "Held
+  for 10 minutes while you pay" note is what the design actually shows
+  here, not a per-row timer, so that's what shipped. "Continue" reuses
+  the existing simulated pay-and-confirm behavior (`setPaid(true)`) —
+  still fake, same as before.
+
+**New shared component, not duplicated a second time:** `site-nav.tsx`
+factors out the sticky nav both `/` and `/register` now use — same
+brand/Home/How it works/Sign in, with the "Register" link the only thing
+that changes shape: always a filled pill (a nav item and a CTA at once),
+`--foreground` colored generally, switching to `--primary` when it's
+also the current page's "you are here" marker. `ThemeToggle` gained a
+`size` prop (34px in the landing footer, 38px in the register page's
+sticky bar — each page's own spec, not reconciled to one size). The
+global wave-1 `Nav` (`components/nav.tsx`) now also hides on
+`/register`, alongside `/`, for the same stacked-nav reason as before.
+
+**Verified:** `npx tsc --noEmit` (root) and `eslint` clean. Headless
+Chromium, driven through actual interaction rather than just a static
+screenshot: switched to "Both" (role chips appear on chosen rows,
+per-row Skater/Goalie override works), added two slots (sticky bar
+totals update correctly, row switches to the chosen/highlighted variant
+with a working "Remove"), ran the contention demo against an
+*unheld* slot until it filled (row live-transitions from open → blocked
+"Full", demo button disables itself), then — separately — held Friday
+21:30 first and ran the same demo against that *held* slot specifically:
+confirmed the "stale" path is real, not just plausible-looking code —
+the row visibly flipped to the red variant with "No skater spots left,"
+the sticky bar's summary line changed to "One slot needs fixing before
+you continue," and "Continue" disabled itself, exactly as designed.
+Also toggled dark mode from the sticky bar's new 38px toggle, clicked
+"Hold & continue →" through to the confirmed state (sticky bar
+disappears, green confirmation banner appears, "Remove" buttons
+disappear), and reflowed correctly at a 420px viewport. Zero console
+errors throughout any of it. Also confirmed `/schedule` still renders
+the original plain wave-1 `Nav` untouched, with dark mode correctly
+carried over from the site-wide toggle.
+
+**Not verified:** the row-state taxonomy's rarer combinations (e.g. a
+stale line in "both" mode specifically, or the picker interacting with a
+row that goes stale mid-pick) — the main paths above were driven for
+real, not an exhaustive matrix of every state × every mode.

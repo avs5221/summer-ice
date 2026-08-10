@@ -5,6 +5,7 @@ import { dbPooled } from "@summerice/db";
 import { getSlotFillOverview } from "@summerice/core";
 import { SEASON } from "~/lib/fake-data";
 import { LandingSlotRow } from "./landing-slot-row";
+import { SiteNav } from "./site-nav";
 import { ThemeToggle } from "./theme-toggle";
 import styles from "./page.module.css";
 
@@ -54,30 +55,7 @@ export default async function Home() {
 
   return (
     <div className={styles.page}>
-      <nav className={styles.nav}>
-        <div className={styles.navInner}>
-          <a href="#top" className={styles.brand}>
-            <Image src="/logo-circle.png" alt="Summer Ice" width={28} height={28} className={styles.brandMark} />
-            <span className={styles.wordmark}>
-              Summer <span style={{ color: "var(--primary)" }}>Ice</span>
-            </span>
-          </a>
-          <div className={styles.navLinks}>
-            <Link href="/" className={styles.navLinkActive}>
-              Home
-            </Link>
-            <a href="#how" className={styles.navLink}>
-              How it works
-            </a>
-            <Link href="/login" className={styles.navLink}>
-              Sign in
-            </Link>
-            <Link href="/register" className={styles.registerBtn}>
-              Register
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <SiteNav active="home" />
 
       <div id="top" className={styles.hero}>
         <div className={styles.heroInner}>
