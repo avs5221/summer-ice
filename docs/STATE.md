@@ -14,13 +14,14 @@ watching the DOM update with no refresh.
 
 ## Last commit
 
-`e778956` — "diag: verify live-fill pipeline end-to-end, add subscribe/message
-logging" — 2026-08-10, matches `origin/main` (this repo pushes promptly;
-Vercel's latest production deployment, `dpl_3VryDZsNqNAx6ooFxksLKbaCmgQn`, is
-built from this exact commit — confirmed via the Vercel API, not assumed).
-This session's own work (browser-verified live-fill confirmation, no code
-change) lands in the commit right after this file is regenerated — check
-`git log -1` if you need the exact hash.
+`e9200b2` — "diag: browser-verify live-fill end-to-end on deployed site — no
+bug found" — 2026-08-10, matches `origin/main` (this repo pushes promptly).
+This is the commit that closed out the live-fill verification gap: drove
+headless Chromium against the deployed homepage, changed a live
+`slot_capacities` row via the Supabase MCP while the page was open, and
+watched the DOM update with no refresh. No code change — the prior session's
+diagnosis was correct that the pipeline worked; this one just watched it in
+a browser to be sure.
 
 ## What exists, per package
 
