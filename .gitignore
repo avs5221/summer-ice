@@ -27,4 +27,12 @@ pnpm-debug.log*
 # Claude Code local settings (per-developer, not shared)
 .claude/settings.local.json
 
+# Locally installed agent skills (per-developer, not shared)
+.agents/skills/
+.claude/skills/
+skills-lock.json
+
+# Local MCP server config (per-developer, not shared)
+.mcp.json
+
 *:Zone.Identifier
