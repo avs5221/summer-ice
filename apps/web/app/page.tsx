@@ -63,14 +63,11 @@ export default async function Home() {
             </span>
           </a>
           <div className={styles.navLinks}>
-            <a href="#schedule" className={styles.navLink}>
-              Schedule
-            </a>
+            <Link href="/" className={styles.navLinkActive}>
+              Home
+            </Link>
             <a href="#how" className={styles.navLink}>
               How it works
-            </a>
-            <a href="#rink" className={styles.navLink}>
-              The rink
             </a>
             <Link href="/login" className={styles.navLink}>
               Sign in
@@ -81,8 +78,6 @@ export default async function Home() {
           </div>
         </div>
       </nav>
-
-      <ThemeToggle />
 
       <div id="top" className={styles.hero}>
         <div className={styles.heroInner}>
@@ -265,6 +260,7 @@ export default async function Home() {
             <a href="#how">How it works</a>
             <a href="#">Contact</a>
             <a href="#">Privacy</a>
+            <ThemeToggle />
           </div>
         </div>
       </footer>

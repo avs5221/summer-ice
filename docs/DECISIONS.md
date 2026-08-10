@@ -845,3 +845,56 @@ the real logo — not the placeholder-shaped-but-corrupt one — rendering
 cleanly in the nav, hero and footer. The Wero-copy revert (previous
 entry) was screenshotted in the same pass, confirming both changes
 landed together correctly.
+
+### 2026-08-10 — Re-import requested; caught it was a repeat, then re-synced against real design changes
+
+Michael re-sent the original "import and implement `Summer Ice Landing.dc.html`"
+instruction verbatim. Checked state first rather than redoing the work
+blind, per `CLAUDE.md`'s session ritual: the design had already been
+implemented and pushed (`c6369c6`, `5560170`), local `main` matched
+`origin/main` exactly, and the current logo file was the good one Michael
+supplied — re-running the original import would have re-fetched
+`assets/logo-circle.png` through `DesignSync` and re-truncated it,
+regressing the fix two entries above. Reported the contradiction instead
+of complying silently; Michael confirmed the actual intent was that the
+design project itself had changed and asked for a re-sync — re-fetching
+`.dc.html`/`colors_and_type.css` (text, no truncation risk) but
+deliberately *not* re-fetching the logo.
+
+**Real changes in the current design, diffed against what was
+implemented:**
+
+- Top nav restructured: dropped "Schedule" and "The rink" as direct nav
+  links; added "Home" as an active/underlined current-page indicator
+  (`border-bottom: 2px solid var(--primary)`); "How it works" and "Sign
+  in" remain, now alongside a multi-page site structure (`How It
+  Works.dc.html`, `Login.dc.html`, `Register.dc.html`, `Contact.dc.html`,
+  `Privacy.dc.html` all now exist as separate files in the design
+  project). Not treated as a signal to split this page into multiple
+  Next.js routes — this repo already has real `/login` and `/register`
+  routes those links point to, and "How it works" still has real content
+  in-page here (`#how`), so it stays an anchor rather than a link to a
+  route that doesn't exist. Same reasoning as the first pass's Contact/
+  Privacy decision, just re-applied to a design that's now further along.
+- The floating bottom-right theme toggle is gone from the design
+  entirely — moved into the footer's link row as a small (34px) bordered
+  icon button, transparent background, `border-color`/`color` shifting to
+  `var(--primary)` on hover. `theme-toggle.tsx`'s logic (the class toggle,
+  the localStorage persistence, the effect-not-lazy-initializer hydration
+  handling) is unchanged — only its container and CSS class changed, from
+  a fixed Tailwind-utility button to `styles.themeToggle` in the CSS
+  module, sized and positioned to match.
+- Confirmed, not changed: "One iDEAL or Wero payment" is what the design
+  source has said the whole time — re-fetching it just re-confirms the
+  entry two above (Michael's correction, not a new design edit).
+
+**Verified:** `npx tsc --noEmit` (root) and `eslint` clean; re-ran the
+same headless-Chromium pass — zero console errors, nav shows Home
+(underlined)/How it works/Sign in/Register, footer shows the small
+circular toggle in place of the old floating button, dark mode still
+toggles correctly from its new location. (The full-page screenshot shows
+the sticky nav appearing to "duplicate" partway down the page — a known
+Playwright `fullPage` capture artifact for `position: sticky` elements,
+not a real rendering bug; same class of thing as the floating-button
+artifact noted in the very first browser-verification pass this
+session.)

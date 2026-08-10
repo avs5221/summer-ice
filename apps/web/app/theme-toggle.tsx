@@ -1,13 +1,16 @@
 "use client";
 
-// Floating light/dark toggle from the "Summer Ice Landing" design. Toggles
-// the `.dark` class on <html> — see globals.css's `@custom-variant dark`,
+// Light/dark toggle from the "Summer Ice Landing" design — a small inline
+// icon button in the footer's link row (the design moved it here from an
+// earlier revision's fixed bottom-right floating button). Toggles the
+// `.dark` class on <html> — see globals.css's `@custom-variant dark`,
 // which makes every `dark:` Tailwind utility site-wide follow this class
 // rather than only `prefers-color-scheme`. The class itself is initialised
 // before paint by the inline script in layout.tsx, so this component only
 // ever reflects an already-correct state, never causes the flash it would
 // if it were the thing setting the class for the first time.
 import { useEffect, useState } from "react";
+import styles from "./page.module.css";
 
 const STORAGE_KEY = "si-theme";
 
@@ -50,16 +53,15 @@ export function ThemeToggle() {
       onClick={toggle}
       title="Switch theme"
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      className="fixed right-6 bottom-6 z-50 flex h-11 w-11 items-center justify-center rounded-full border-0 text-[color:var(--background)] shadow-[var(--shadow-cd-lg)]"
-      style={{ background: "var(--foreground)" }}
+      className={styles.themeToggle}
     >
       {isDark ? (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
           <circle cx="8" cy="8" r="3" />
           <path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3.05 3.05l1.13 1.13M11.82 11.82l1.13 1.13M12.95 3.05l-1.13 1.13M4.18 11.82l-1.13 1.13" />
         </svg>
       ) : (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
           <path d="M13.5 9.2A5.5 5.5 0 0 1 6.8 2.5a5.5 5.5 0 1 0 6.7 6.7Z" />
         </svg>
       )}

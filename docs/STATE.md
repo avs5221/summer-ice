@@ -44,22 +44,38 @@ Michael — Wero is iDEAL's own succession path, not the repo's earlier
 guess). Zero console errors, logo confirmed rendering correctly in the
 screenshot. Full account in `DECISIONS.md`.
 
+**Same day, fourth pass:** Michael re-sent the original import
+instruction; checked state first (per the session ritual) rather than
+re-running it blind, found it already shipped, and — since the actual
+ask turned out to be "the design project changed, re-sync" — re-fetched
+`Summer Ice Landing.dc.html`/`colors_and_type.css` only (not the logo,
+deliberately). Real changes: top nav restructured (Home/How it
+works/Sign in/Register, "Schedule" and "The rink" dropped as direct nav
+links), and the theme toggle moved from a fixed bottom-right floating
+button into a small icon button in the footer's link row. Both
+implemented; `npx tsc --noEmit` + `eslint` clean, headless-Chromium pass
+re-run, zero console errors. Full account in `DECISIONS.md`.
+
 ---
 
 ## Last commit
 
 This file is regenerated as part of the same commit it describes, so it
-can't name its own hash in advance — check `git log -1`. That commit is a
-same-session fix on top of the one before it: swaps in the real
-`logo-circle.png` (the previous commit's shipped a truncated one — see
-`DECISIONS.md`) and reverts a copy correction ("iDEAL" → back to "iDEAL
-or Wero," per Michael). The commit before it did the actual landing-page
-work: restyled the homepage (`/`) from the "Summer Ice Landing" Claude
-Design project — new nav/hero/schedule-table/footer, a site-wide
-class-based dark-mode toggle, still reading real live data exactly as
-before. The commit before *that* landed the first slice of build-order
-phase 4 (`ARCHITECTURE.md` §7): password sign-up/sign-in/sign-out via
-Supabase Auth, session handling (`@supabase/ssr`), the `credentials`/
+can't name its own hash in advance — check `git log -1`. That commit
+re-syncs the homepage (`/`) against changes made to the "Summer Ice
+Landing" Claude Design project after the initial import: nav
+restructured (Home/How it works/Sign in/Register), theme toggle moved
+from a floating button into the footer. The commit before it was a
+same-session fix: swapped in the real `logo-circle.png` (an earlier
+commit shipped a truncated one — see `DECISIONS.md`) and reverted a copy
+correction ("iDEAL" → back to "iDEAL or Wero," per Michael). The commit
+before *that* did the actual landing-page work: restyled the homepage
+from the design project — new nav/hero/schedule-table/footer, a
+site-wide class-based dark-mode toggle, still reading real live data
+exactly as before. The commit before *that* landed the first slice of
+build-order phase 4 (`ARCHITECTURE.md` §7): password sign-up/sign-in/
+sign-out via Supabase Auth, session handling (`@supabase/ssr`), the
+`credentials`/
 `roles` provisioning and lookup layer in `packages/core`, and the three
 season-registration routes rewired to real session identity, closing the
 security gap they shipped with on purpose.
