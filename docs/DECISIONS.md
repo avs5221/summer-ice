@@ -463,3 +463,97 @@ the lapsed-offer sweep. `npx tsc --noEmit` and `pnpm lint:all` clean.
 DOMAIN-MODEL §4's "swap on acceptance" and payment-reuse design) — a
 payment-flow function belonging with `holdCart`/`confirmCart`, not built
 this session.
+
+---
+
+### 2026-08-10 — Decline correction, route layer, and the phase-3 load-test gate, in one session
+
+Three instructions in one message: build the route layer, fix decline
+(again), build the load-test harness. Recorded together because the
+middle one changed what the first and third needed to be right about.
+
+**Correction: declining removes you from the waitlist — it does not
+re-add you.** The entry directly above this one shipped `declineOffer`
+re-queuing the decliner at the back of the waitlist. Direct correction,
+same day: *"declining removes you from the queue, it shouldn't re-add the
+person. That's not logical."* It wasn't a design decision that got
+overridden — re-reading the source, it was this codebase's own
+misreading of DOMAIN-MODEL §4's diagram, which shows the transition
+looping back toward the waitlist box without ever actually specifying
+that as the resulting *persisted* status. Fixed by reusing
+`releaseRegistration`'s `offered` → `withdrawn` transition instead of a
+second hand-rolled one; `promoteWaitlist`'s lapsed-offer sweep got the
+same fix by inference (not a second direct instruction — flagged as such
+in `DOMAIN-MODEL.md` §4 in case that inference is wrong), on the
+reasoning that this codebase already treats non-response as a real,
+binding choice elsewhere (§5, "unknown is out") rather than a softer case
+than an explicit decline. `registrations.ts`'s schema comment and
+`DOMAIN-MODEL.md`'s diagram were both wrong in the same direction and
+both corrected.
+
+**The route layer: `apps/web/app/api/registrations/**`, three routes
+(hold, release, decline), no `confirm` route.** Thin callers per
+`ARCHITECTURE.md` §4.1 — parse, call `packages/core`, serialise. Request
+validation lives in `packages/contracts/registration.ts` (Zod), the
+package's first real content. **No confirm route, on purpose**:
+`ARCHITECTURE.md` §4.5 restricts confirmation to the Mollie webhook, which
+doesn't exist yet (phase 5) — exposing it as a plain route now would let
+anyone confirm a registration without paying for it. **Flagged loudly, not
+silently accepted: these three routes trust a body-supplied `personId`
+with zero session verification**, because Supabase Auth doesn't exist yet
+(phase 4, not phase 6, which is where registration UI was originally
+scheduled) — building this ahead of auth was the direct instruction, and
+the gap is real, not hypothetical, so it's called out in the route files
+themselves, in `STATE.md`'s package table, and in `STATE.md`'s "not
+verified" list, all three, on the theory that a gap this consequential
+should be hard to miss by only reading one of them.
+
+**Driving the routes surfaced a real, if minor, hygiene bug**, independent
+of the decline correction: `releaseRegistration` set `status: "withdrawn"`
+but left `hold_expires_at`/`offer_expires_at` untouched, so a withdrawn
+row could carry a stale future-looking timestamp forever. Harmless for the
+availability formula (status alone gates it), confusing for anyone
+reading the row directly. Fixed to null both on withdrawal.
+
+**The load-test harness — `packages/core/load-test/season-registration.ts`,
+run and passing twice.** `ARCHITECTURE.md` §12's actual phase-3 gate: 300
+concurrent multi-line carts, a 20-capacity hot slot plus a shared 4-slot
+cold pool for genuine overlapping contention, fired via
+`Promise.allSettled`. Needed a new `dbDirectPooled(max)` export in
+`packages/db/client.ts` — `dbDirect()`'s postgres-js default of 10
+connections would have throttled "several hundred concurrent" down to
+10-at-a-time, a materially weaker test than ARCHITECTURE actually calls
+for.
+
+**Two bugs the harness caught in itself, before it caught anything in the
+product — worth recording because both would have produced a
+false-positive PASS, not a crash:**
+
+1. **Connection-pool sizing.** First run at `POOL_MAX = 50` failed 230 of
+   300 calls with `"sorry, too many clients already"` — local Postgres's
+   `max_connections` is 100, and a running `next dev` server plus a couple
+   of `psql` sessions were enough to tip 50 over the edge. Not a
+   correctness failure in the product, but the harness correctly refused
+   to call it a pass — `held` still equalled exactly 20 even under this
+   failure, which on a less careful read could have looked like success.
+   Settled on `POOL_MAX = 30`, comfortably under the ceiling.
+2. **An indexing bug in the harness's own assertions.** The "no partial
+   baskets" check zipped `Promise.allSettled`'s *filtered* fulfilled
+   results against the *original, unfiltered* `carts` array by position —
+   correct only when nothing was rejected. Once the connection-pool
+   failure above produced 230 rejections, the filtered array's indices no
+   longer lined up with `carts`, and the check reported 13 false "partial
+   basket" failures that had nothing to do with partial baskets. Fixed by
+   zipping against the original index from `settled.forEach`, before any
+   filtering.
+
+**Verified, both runs:** exactly 20 held, exactly 280 waitlisted, 0
+rejected calls, 0 partial baskets, 0 duplicate active registrations,
+database counts agreeing with the calls' own reports. `npx tsc --noEmit`
+and `pnpm lint:all` clean throughout. The three routes driven end-to-end
+with `curl` against a running dev server and hand-inserted fixtures,
+cleaned up afterward — see `STATE.md` for the exact sequence.
+
+**Build order phase 3 (`ARCHITECTURE.md` §12–13) is done as of this
+entry.** Phase 4 (auth) is next, not optional — it's what closes the
+security gap this session's route layer opened on purpose.

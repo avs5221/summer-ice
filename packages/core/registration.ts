@@ -321,7 +321,7 @@ export async function releaseRegistration(
 
   const [updated] = await tx
     .update(registrations)
-    .set({ status: "withdrawn" })
+    .set({ status: "withdrawn", holdExpiresAt: null, offerExpiresAt: null })
     .where(and(eq(registrations.id, peek.id), inArray(registrations.status, ["held", "offered", "confirmed", "waitlisted"])))
     .returning({ id: registrations.id });
 

@@ -276,11 +276,11 @@ Level mismatches are recorded in `player_flags` (§2), not as a column here — 
    │             │                                      │
    │             └──────> expired ─────────────────────┤
    │                                                    │
-   └────────> waitlisted ──> offered ──> confirmed ─────┘
-                    ▲            │
-                    │            ├──> declined
-                    └────────────┴──> offer_expired
-                         (next in queue offered)
+   └────────> waitlisted ──> offered ──> confirmed ─────┤
+                              │                          │
+                              ├──> declined ─────────────┤
+                              └──> offer_expired ─────────┘
+                  (declining or expiring an offer also offers the next queued person)
 ```
 
 - **held** — capacity reserved, `hold_expires_at` set, awaiting payment
@@ -288,7 +288,7 @@ Level mismatches are recorded in `player_flags` (§2), not as a column here — 
 - **expired** — hold lapsed unpaid. Capacity freed by *computed* expiry (see §7).
 - **waitlisted** — slot was full at cart time. Free, instant, ordered by `waitlist_joined_at`. Triggers alternative slot suggestions (below).
 - **offered** — capacity opened; this person is first in line and has an exclusive window.
-- **withdrawn** — player or admin. Credit issued per refund policy.
+- **withdrawn** — player or admin, or a waitlist offer that was declined or left to lapse (settled 2026-08-10 — see below: it removes the person from the queue entirely rather than re-queuing them). Credit issued per refund policy, where a charge exists — a declined/expired offer never had one, so there's nothing to credit in that case.
 
 ### The mixed cart
 
@@ -348,34 +348,48 @@ defaults to 60. Per-season and admin-configurable, unlike the fixed
 before that migration, and 60 was a human decision made on the spot, not
 derived from anything written here.
 
-**Step 4, resolved 2026-08-10.** The state-machine diagram above shows
-`declined` and `offer_expired` both looping back toward `waitlisted` but
-never said whether the *same* registration row re-queues, and at what
-`waitlist_joined_at`. Asked directly: "if a waitlist spot is declined or
-expires, it moves to the next person in the waitlist" — the mechanism was
-left to implementation. Built as:
+**Step 4, resolved 2026-08-10, corrected the same day.** First pass had
+`declined`/`offer_expired` re-queue the same registration row at the back
+of the waitlist. Corrected on direct instruction: **declining removes the
+person from the queue entirely — it does not re-add them.** Re-queuing was
+never actually specified anywhere; it was this document's own
+misreading of a diagram that only showed the transition looping back
+toward the waitlist box, not a deliberate design. Both transitions now
+persist as `withdrawn` (the diagram above reflects this), the same
+terminal status an ordinary cancellation uses — there's no separate
+`declined` or `offer_expired` value in the `registrations` status check
+constraint, and there's no reason to add one for a state with no money
+attached (a declined/expired offer was never charged, so "withdrawn" here
+carries no credit/refund consequence, unlike most other paths into that
+status).
 
-- **Decline** (`packages/core/waitlist.ts`'s `declineOffer`) is an active
-  transition: `offered` → `waitlisted`, immediately followed by
+- **Decline** (`packages/core/waitlist.ts`'s `declineOffer`) reuses
+  `releaseRegistration`'s `offered` → `withdrawn` transition, then calls
   `promoteWaitlist` in the *same* transaction, so the next person is
-  offered as part of one call, not a separate step a caller has to
-  remember. The decliner's row re-queues rather than retires (the
-  `registrations` status check constraint has no separate terminal value
-  for either `declined` or `offer_expired`, so re-queuing is what the
-  schema already committed to) — but at a **fresh** `waitlist_joined_at`,
-  the back of the queue, not the original one. Keeping the original
-  timestamp would let a single person cycle back to the front forever if
-  they're the only one waiting — a live loop, not a hypothetical.
+  offered as part of one call rather than a separate step a caller has to
+  remember to chain.
 - **Expiry** is not an active transition anyone calls — nothing in
   `packages/core` sweeps on a timer (no Cron/outbox yet). Instead,
   `promoteWaitlist` sweeps any lapsed `offered` row for the (slot,
-  position) it's about to act on, back to `waitlisted` at the back of the
-  queue, as its first step, before finding who to offer next. Correctness
-  never depended on this sweep firing promptly (§7's computed-not-swept
-  formula already excludes a lapsed offer from "taken" regardless of its
-  stored status) — the sweep is bookkeeping, made to happen for free
-  wherever `promoteWaitlist` is next invoked for that key, whether that's
-  a decline elsewhere, an admin action, or eventually a Cron job.
+  position) it's about to act on to `withdrawn`, as its first step, before
+  finding who to offer next. Correctness never depended on this sweep
+  firing promptly (§7's computed-not-swept formula already excludes a
+  lapsed offer from "taken" regardless of its stored status) — the sweep
+  is bookkeeping, made to happen for free wherever `promoteWaitlist` is
+  next invoked for that key, whether that's a decline elsewhere, an admin
+  action, or eventually a Cron job. Expiry gets the same "removed, not
+  re-queued" treatment as an explicit decline, by inference from the human
+  instruction and from this system's own precedent elsewhere (§5,
+  "unknown is out" — a non-response is already treated as a real, binding
+  choice once the person's been adequately warned, not a softer case than
+  an explicit one) rather than a second direct instruction. If that
+  inference is wrong, it's a one-line change (a status value in
+  `promoteWaitlist`'s sweep), not a redesign.
+
+A person who's been swept or declined off a waitlist and still wants the
+slot has no built-in way back in yet — they'd need to register again from
+the schedule page, same as anyone else, joining at the back like anyone
+else would.
 
 `packages/core`'s `promoteWaitlist` and `declineOffer` implement steps 1,
 2 and 4. **Step 3 — accepting an offer — is still not built**: creating the

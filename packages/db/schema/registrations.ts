@@ -4,8 +4,10 @@
 // status is exactly the six values named in the state-machine's own
 // definitional list (held, confirmed, expired, waitlisted, offered,
 // withdrawn). 'declined' and 'offer_expired' appear only as transition
-// arrows in that diagram — both loop back to 'waitlisted' rather than
-// persisting as their own status.
+// arrows in that diagram — both resolve to 'withdrawn' (removing the
+// person from the queue entirely — settled 2026-08-10, packages/core's
+// declineOffer and promoteWaitlist), not a new status and not a re-queue
+// back to 'waitlisted'.
 import { sql } from "drizzle-orm";
 import {
   check,

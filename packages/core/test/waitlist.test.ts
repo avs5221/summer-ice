@@ -54,16 +54,14 @@ void test("promoteWaitlist: empty_queue when capacity is open but nobody is wait
   });
 });
 
-void test("declineOffer: moves the spot to the next person in the waitlist, in one transaction", async () => {
+void test("declineOffer: moves the spot to the next person in the waitlist, and removes the decliner from the queue", async () => {
   await withRollback(async (tx) => {
     const { slot } = await makeSlotWithCapacity(tx, "skater", 0);
     const alice = await makePerson(tx);
     const bob = await makePerson(tx);
-    const carol = await makePerson(tx);
 
     await holdCart(tx, { personId: alice.id, seasonId: slot.seasonId, lines: [{ slotId: slot.id, position: "skater" }] });
     const bobHold = await holdCart(tx, { personId: bob.id, seasonId: slot.seasonId, lines: [{ slotId: slot.id, position: "skater" }] });
-    await holdCart(tx, { personId: carol.id, seasonId: slot.seasonId, lines: [{ slotId: slot.id, position: "skater" }] });
 
     await tx.update(slotCapacities).set({ capacity: 1 }).where(eq(slotCapacities.slotId, slot.id));
     const offered = await promoteWaitlist(tx, { slotId: slot.id, position: "skater" });
@@ -86,15 +84,17 @@ void test("declineOffer: moves the spot to the next person in the waitlist, in o
       }
     }
 
-    // Alice is back in the queue, not retired — but at the BACK of it, not
-    // the front, so she isn't immediately re-offered the spot she just
-    // turned down. Carol joined before Alice declined, so Alice's fresh
-    // timestamp must land after Carol's original one.
+    // Alice is OUT — withdrawn, not re-queued. Declining removes you from
+    // the waitlist; it doesn't send you to the back of it.
     const aliceRow = await tx.select({ status: registrations.status }).from(registrations).where(eq(registrations.id, aliceRegistrationId));
-    assert.equal(at(aliceRow, 0).status, "waitlisted");
+    assert.equal(at(aliceRow, 0).status, "withdrawn");
 
+    // Bob's offer is still consuming the slot's only spot — capacity, not
+    // queue, is what blocks a third call here. Alice being gone rather
+    // than re-queued doesn't change that; there's nobody else waiting
+    // either way.
     const nextPromotion = await promoteWaitlist(tx, { slotId: slot.id, position: "skater" });
-    assert.equal(nextPromotion.outcome, "no_capacity"); // Bob's offer is still consuming the one open spot
+    assert.deepEqual(nextPromotion, { outcome: "no_capacity" });
   });
 });
 
@@ -112,7 +112,7 @@ void test("declineOffer: not_offered when the registration isn't currently offer
   });
 });
 
-void test("promoteWaitlist: sweeps a lapsed offer back to the queue and promotes the next person", async () => {
+void test("promoteWaitlist: sweeps a lapsed offer out of the queue and promotes the next person", async () => {
   await withRollback(async (tx) => {
     const { slot } = await makeSlotWithCapacity(tx, "skater", 0);
     const alice = await makePerson(tx);
@@ -146,6 +146,6 @@ void test("promoteWaitlist: sweeps a lapsed offer back to the queue and promotes
       .select({ status: registrations.status })
       .from(registrations)
       .where(eq(registrations.id, offered.registrationId));
-    assert.equal(at(aliceRow, 0).status, "waitlisted"); // swept back, not left dangling as "offered"
+    assert.equal(at(aliceRow, 0).status, "withdrawn"); // swept out, not left dangling as "offered"
   });
 });

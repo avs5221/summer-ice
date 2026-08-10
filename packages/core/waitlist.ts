@@ -2,16 +2,15 @@
 // promotion"). Covers finding the earliest waitlisted registration and
 // making it `offered` (promoteWaitlist), an active decline (declineOffer),
 // and — folded into promoteWaitlist rather than a separate function — a
-// lapsed offer being swept back into the queue. Accepting an offer
-// ("creates a one-line registration_carts row", the swap-on-acceptance
-// choice) is still not built: that's a payment-flow function belonging
-// alongside holdCart/confirmCart, not a waitlist-mechanics one, and this
-// pass's scope is bounded by what the concurrency load test (ARCHITECTURE
-// §12) actually exercises.
+// lapsed offer being swept out of the queue. Accepting an offer ("creates
+// a one-line registration_carts row", the swap-on-acceptance choice) is
+// still not built: that's a payment-flow function belonging alongside
+// holdCart/confirmCart, not a waitlist-mechanics one.
 import { and, eq, sql } from "drizzle-orm";
 import { registrations } from "@summerice/db";
 import type { Tx } from "@summerice/db";
 import { countActiveRegistrations, lockSlotCapacities, type Position } from "./capacity-lock.ts";
+import { releaseRegistration } from "./registration.ts";
 
 export interface PromoteWaitlistInput {
   slotId: string;
@@ -32,20 +31,21 @@ export type PromoteWaitlistResult =
  * can't both act on the same just-opened spot.
  *
  * Also sweeps any `offered` row for this (slot, position) whose
- * offer_expires_at has lapsed back to `waitlisted`, at the back of the
- * queue (a fresh waitlist_joined_at — see declineOffer's docstring for why
- * the timestamp resets rather than carries over). This is bookkeeping, not
- * a correctness dependency: countActiveRegistrations already excludes a
- * lapsed offer from "taken" regardless of its stored status (ARCHITECTURE
- * §4.2, computed not swept), so the capacity decision below is correct
- * with or without this sweep. What the sweep buys is the row's status
- * matching reality, and — since it happens before the "find earliest
- * waitlisted" query just below — it's what lets an expired offer's spot
- * reach the *next* person in one promoteWaitlist call instead of a second
- * one. Doing it here, rather than a dedicated Cron sweep, is deliberate:
- * there's no outbox/Cron infrastructure yet (STATE.md), and folding it
- * into the function that's already touching this exact (slot, position)
- * under lock costs nothing extra.
+ * offer_expires_at has lapsed to `withdrawn` — removed from the queue
+ * entirely, not re-queued (settled 2026-08-10: an offer that's declined or
+ * left to lapse takes the person out of the running; see declineOffer's
+ * docstring for the fuller reasoning, which applies here too). This sweep
+ * is bookkeeping, not a correctness dependency: countActiveRegistrations
+ * already excludes a lapsed offer from "taken" regardless of its stored
+ * status (ARCHITECTURE §4.2, computed not swept), so the capacity decision
+ * below is correct with or without it. What the sweep buys is the row's
+ * status matching reality, and — since it happens before the "find
+ * earliest waitlisted" query just below — it's what lets an expired
+ * offer's spot reach the *next* person in one promoteWaitlist call instead
+ * of a second one. Doing it here, rather than a dedicated Cron sweep, is
+ * deliberate: there's no outbox/Cron infrastructure yet (STATE.md), and
+ * folding it into the function that's already touching this exact (slot,
+ * position) under lock costs nothing extra.
  */
 export async function promoteWaitlist(tx: Tx, input: PromoteWaitlistInput): Promise<PromoteWaitlistResult> {
   const key = { slotId: input.slotId, position: input.position };
@@ -55,21 +55,9 @@ export async function promoteWaitlist(tx: Tx, input: PromoteWaitlistInput): Prom
     throw new Error(`promoteWaitlist: no slot_capacities row for slot ${input.slotId} position ${input.position}`);
   }
 
-  // The new waitlist_joined_at must come from the same clock every other
-  // one in this module does (JS Date.now(), in holdCart and declineOffer)
-  // — NOT SQL now(), which is pinned to this transaction's start time, not
-  // the current instant. Mixing the two sources broke queue ordering
-  // (caught by this file's own "sweeps a lapsed offer" test): a
-  // long-running transaction's now() can be earlier than a
-  // waitlist_joined_at another, shorter transaction wrote moments ago with
-  // Date.now(), so the swept row would sort BEFORE rows that actually
-  // joined the queue earlier. The WHERE clause's own `now()`, below, is
-  // fine as-is — it's a threshold check ("has this deadline passed"), not
-  // a value that gets ordered against JS-sourced timestamps.
-  const sweptAt = new Date();
   await tx.execute(sql`
     update registrations
-    set status = 'waitlisted', offer_expires_at = null, waitlist_joined_at = ${sweptAt.toISOString()}
+    set status = 'withdrawn', offer_expires_at = null
     where slot_id = ${input.slotId}
       and position = ${input.position}
       and status = 'offered'
@@ -140,20 +128,18 @@ export type DeclineOfferResult =
  * deliberately leaves promotion to the caller, since a withdrawal has many
  * call sites and not all of them want instant promotion), declineOffer
  * calls promoteWaitlist itself, in the same transaction. A decline has
- * exactly one purpose: free the spot for whoever's next. There's no
- * legitimate reason to decline without releasing it.
+ * exactly one purpose: free the spot for whoever's next.
  *
- * Re-queues the decliner to the BACK of the waitlist (a fresh
- * waitlist_joined_at) rather than retiring their registration outright —
- * DOMAIN-MODEL §4's state-machine diagram shows declined/offer_expired both
- * looping back to `waitlisted`, and registrations' own status check
- * constraint has no separate terminal value for either, so re-queuing is
- * what the schema already commits to. Resetting the timestamp, rather than
- * keeping the original, is what stops them being immediately re-offered
- * the same spot they just turned down: DOMAIN-MODEL doesn't specify this
- * ordering choice, but keeping the original timestamp is a live loop bug —
- * the same person would float back to the front of the queue every time
- * capacity opens, if they're the only one waiting.
+ * **Removes the decliner from the queue — does not re-add them.** Corrected
+ * same-day: the first version re-queued the decliner at the back of the
+ * waitlist, reasoning from DOMAIN-MODEL §4's diagram (which shows
+ * `declined`/`offer_expired` looping back toward `waitlisted`). Direct
+ * correction: "declining removes you from the queue, it shouldn't re-add
+ * the person. That's not logical." Re-queuing was this codebase's own
+ * misreading, not a real spec, so this now reuses releaseRegistration's
+ * `offered` → `withdrawn` transition instead of writing a second one —
+ * declining an offer is just a withdrawal that happens to be followed by
+ * promoting whoever's next.
  */
 export async function declineOffer(tx: Tx, input: DeclineOfferInput): Promise<DeclineOfferResult> {
   const [peek] = await tx
@@ -174,23 +160,11 @@ export async function declineOffer(tx: Tx, input: DeclineOfferInput): Promise<De
   }
 
   const position = peek.position as Position;
-  // Same lock promoteWaitlist takes below — reentrant within one
-  // transaction (Postgres lets a session re-acquire a row lock it already
-  // holds), so this is a harmless extra round trip, not a self-deadlock.
-  // Taken here anyway to keep "every function that changes a
-  // capacity-counted status locks first" uniform across the module, per
-  // the same reasoning in releaseRegistration.
-  await lockSlotCapacities(tx, [{ slotId: peek.slotId, position }]);
-
-  const [updated] = await tx
-    .update(registrations)
-    .set({ status: "waitlisted", offerExpiresAt: null, waitlistJoinedAt: new Date() })
-    .where(and(eq(registrations.id, peek.id), eq(registrations.status, "offered")))
-    .returning({ id: registrations.id });
-
-  if (!updated) {
-    // Lapsed between the peek and the lock — promoteWaitlist's sweep
-    // already has or will pick it up; nothing more to do here.
+  const released = await releaseRegistration(tx, { registrationId: peek.id });
+  if (released.outcome !== "withdrawn") {
+    // Raced between the peek above and releaseRegistration's own check
+    // (e.g. the offer lapsed and promoteWaitlist's sweep already withdrew
+    // it) — nothing more to do.
     return { outcome: "not_offered", registrationId: peek.id };
   }
 

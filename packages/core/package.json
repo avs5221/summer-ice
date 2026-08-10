@@ -11,7 +11,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "node ../db/guard-host.ts local-only direct && node --test test/*.test.ts"
+    "test": "node ../db/guard-host.ts local-only direct && node --test test/*.test.ts",
+    "load-test": "node ../db/guard-host.ts local-only direct && node load-test/season-registration.ts"
   },
   "dependencies": {
     "@summerice/contracts": "workspace:*",

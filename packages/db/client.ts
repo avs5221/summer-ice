@@ -39,6 +39,19 @@ export function dbDirect() {
   return drizzle(sql, { schema });
 }
 
+// Same as dbDirect(), with a configurable connection cap — for scripts
+// that need genuine concurrency against local Postgres rather than the
+// postgres-js default of 10 (packages/core's load-test harness, which
+// fires several hundred concurrent holdCart calls and needs enough real
+// connections open at once to actually exercise row-lock contention, not
+// queue behind a small pool). Still never for request-serving code — the
+// "one-off script" rule from dbDirect() above applies here too, just with
+// a caller-chosen ceiling instead of the default.
+export function dbDirectPooled(max: number) {
+  const sql = postgres(requireDirectUrl(), { max });
+  return drizzle(sql, { schema });
+}
+
 export type Db = ReturnType<typeof dbPooled>;
 
 // The transaction handle every packages/core function takes as its first
