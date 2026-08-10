@@ -1,4 +1,7 @@
-import { NavLink } from "react-router";
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 // Plain, functional nav — no styling investment yet, just enough to walk
 // the five wave-1 pages in order. Links to a concrete session so the roster
@@ -13,22 +16,31 @@ const links = [
   { to: `/admin/session/${PROBLEM_SESSION_ID}`, label: "Session roster" },
 ];
 
-function linkClass({ isActive }: { isActive: boolean }): string {
-  return isActive
-    ? "font-semibold text-gray-950 dark:text-white"
-    : "text-gray-600 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white";
-}
-
 export function Nav() {
+  const pathname = usePathname();
+
   return (
     <nav className="border-b border-gray-200 dark:border-gray-800">
       <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 text-sm">
         <span className="font-bold text-gray-950 dark:text-white">Summer Ice</span>
-        {links.map((link) => (
-          <NavLink key={link.to} to={link.to} className={linkClass} end={link.to === "/"}>
-            {link.label}
-          </NavLink>
-        ))}
+        {links.map((link) => {
+          // Exact match only — "/admin" and "/admin/session/…" would both
+          // otherwise light up together under a startsWith check.
+          const isActive = pathname === link.to;
+          return (
+            <Link
+              key={link.to}
+              href={link.to}
+              className={
+                isActive
+                  ? "font-semibold text-gray-950 dark:text-white"
+                  : "text-gray-600 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white"
+              }
+            >
+              {link.label}
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import {
   CURRENT_PLAYER_NAME,
@@ -8,10 +10,6 @@ import {
   formatDateTime,
   slotById,
 } from "~/lib/fake-data";
-
-export function meta() {
-  return [{ title: "My schedule — Summer Ice" }];
-}
 
 function statusLabel(status: AttendanceStatus): string {
   if (status === "attending") return "Playing";
@@ -25,7 +23,7 @@ function statusClass(status: AttendanceStatus): string {
   return "font-medium text-amber-700 dark:text-amber-500";
 }
 
-export default function Schedule() {
+export function ScheduleClient() {
   // Local overrides layered on top of the fake-data answers — confirming or
   // declining here only changes what this page renders, per the brief.
   const [overrides, setOverrides] = useState<Record<string, AttendanceStatus>>({});

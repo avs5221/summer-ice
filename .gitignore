@@ -4,8 +4,8 @@ node_modules/
 # Build output
 dist/
 build/
-apps/web/build/
-apps/web/.react-router/
+apps/web/.next/
+apps/web/next-env.d.ts
 *.tsbuildinfo
 
 # Env
@@ -27,6 +27,4 @@ pnpm-debug.log*
 # Claude Code local settings (per-developer, not shared)
 .claude/settings.local.json
 
-# pgBackRest / local data (infra, phase 1)
-infra/backup/data/
 *:Zone.Identifier

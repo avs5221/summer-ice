@@ -12,10 +12,6 @@
     "lint": "eslint .",
     "lint:all": "pnpm --if-present -r run lint",
     "dev:web": "pnpm --filter @summerice/web run dev",
-    "start:worker": "pnpm --filter @summerice/worker run start",
-    "db:up": "docker compose -f infra/compose.dev.yml --env-file .env -p summerice up -d",
-    "db:down": "docker compose -f infra/compose.dev.yml --env-file .env -p summerice down",
-    "db:nuke": "docker compose -f infra/compose.dev.yml --env-file .env -p summerice down --volumes",
     "db:generate": "pnpm --filter @summerice/db run generate",
     "db:migrate": "pnpm --filter @summerice/db run migrate",
     "db:studio": "pnpm --filter @summerice/db run studio",
@@ -25,9 +21,9 @@
     "@eslint/js": "10.0.1",
     "@types/node": "26.2.0",
     "eslint": "10.8.1",
+    "eslint-config-next": "16.3.0",
     "globals": "17.9.0",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.66.0",
-    "vite": "8.2.1"
+    "typescript-eslint": "8.66.0"
   }
 }

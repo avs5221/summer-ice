@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import {
   type Position,
@@ -8,10 +10,6 @@ import {
   formatTime,
   seasonFill,
 } from "~/lib/fake-data";
-
-export function meta() {
-  return [{ title: "Register — Summer Ice" }];
-}
 
 const HOLD_MINUTES = 10;
 const SIMULATED_SLOT_ID = "fri-2130";
@@ -30,7 +28,7 @@ function key(slotId: string, position: Position): string {
   return `${slotId}:${position}`;
 }
 
-export default function Register() {
+export function RegisterClient() {
   const [globalPosition, setGlobalPosition] = useState<Position | "both">("skater");
   const [rowOverrides, setRowOverrides] = useState<Record<string, Position>>({});
   const [basket, setBasket] = useState<BasketLine[]>([]);
@@ -76,6 +74,10 @@ export default function Register() {
           slotId: slot.id,
           position,
           kind: "held",
+          // react-hooks/purity flags any Date.now() call textually inside a
+          // component's source, even here where it only ever runs inside
+          // this onClick-triggered function — never during render itself.
+          // eslint-disable-next-line react-hooks/purity
           holdExpiresAt: Date.now() + HOLD_MINUTES * 60 * 1000,
           priceCents: slot.price[position].seasonCents,
         }
@@ -139,8 +141,8 @@ export default function Register() {
           1. Position
         </h2>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Applies to new lines. "Both" leaves each hour to its own selector below —
-          the per-line override is promoted rather than hidden.
+          Applies to new lines. &ldquo;Both&rdquo; leaves each hour to its own selector below
+          — the per-line override is promoted rather than hidden.
         </p>
         <div className="mt-2 flex gap-2">
           {(["skater", "goalie", "both"] as const).map((pos) => (
@@ -332,7 +334,7 @@ export default function Register() {
 
         {paid && (
           <div className="mt-5 rounded border border-green-300 bg-green-50 p-4 text-sm dark:border-green-900 dark:bg-green-950">
-            <p className="font-semibold text-green-900 dark:text-green-200">You're confirmed.</p>
+            <p className="font-semibold text-green-900 dark:text-green-200">You&apos;re confirmed.</p>
             <p className="mt-1 text-green-800 dark:text-green-300">
               Confirmed: {heldLines.length === 0 ? "nothing" : heldLines.map((l) => {
                 const slot = SLOTS.find((s) => s.id === l.slotId)!;

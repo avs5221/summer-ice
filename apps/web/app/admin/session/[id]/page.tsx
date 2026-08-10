@@ -1,5 +1,6 @@
-import { Link } from "react-router";
-import type { Route } from "./+types/admin.session";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import {
   type AttendanceStatus,
   type RosterEntry,
@@ -9,15 +10,15 @@ import {
   sessionDetail,
 } from "~/lib/fake-data";
 
-export function meta({ loaderData }: Route.MetaArgs) {
-  if (!loaderData) return [{ title: "Session — Admin — Summer Ice" }];
-  return [{ title: `${loaderData.slot.weekdayLabel} ${formatTime(loaderData.slot.startTime)} — Admin — Summer Ice` }];
+interface PageProps {
+  params: Promise<{ id: string }>;
 }
 
-export function loader({ params }: Route.LoaderArgs) {
-  const detail = params.id ? sessionDetail(params.id) : undefined;
-  if (!detail) throw new Response("Session not found", { status: 404 });
-  return detail;
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const detail = sessionDetail(id);
+  if (!detail) return { title: "Session — Admin — Summer Ice" };
+  return { title: `${detail.slot.weekdayLabel} ${formatTime(detail.slot.startTime)} — Admin — Summer Ice` };
 }
 
 function statusLabel(status: AttendanceStatus): string {
@@ -50,13 +51,17 @@ function RosterList({ entries }: { entries: RosterEntry[] }) {
   );
 }
 
-export default function AdminSession({ loaderData }: Route.ComponentProps) {
-  const { slot, session, openSpots, claims } = loaderData;
+export default async function AdminSession({ params }: PageProps) {
+  const { id } = await params;
+  const detail = sessionDetail(id);
+  if (!detail) notFound();
+
+  const { slot, session, openSpots, claims } = detail;
   const goalieUrgent = session.goalies.length === 0 || openSpots.goalie >= slot.capacity.goalie;
 
   return (
     <main className="mx-auto max-w-lg px-4 py-6">
-      <Link to="/admin" className="text-sm text-gray-500 underline hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
+      <Link href="/admin" className="text-sm text-gray-500 underline hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
         ← Overview
       </Link>
 

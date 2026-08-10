@@ -1,11 +1,15 @@
 # Summer Ice
 
 Summer Ice is the registration, attendance, extras-claiming and payment platform for a
-summer ice hockey league in Leiden: one Postgres database, one Node application serving
-both a web UI and a JSON API, one worker process, one Linux box. It replaces a stack of
-Jotform, manual spreadsheets and WhatsApp threads with atomic claiming, three-state
-attendance and an append-only financial ledger, built to survive a January registration
-rush where demand exceeds supply and money is on the line from the first minute.
+summer ice hockey league in Leiden: Supabase (Postgres, auth) and Vercel (Next.js app,
+cron), not a hand-run box. It replaces a stack of Jotform, manual spreadsheets and
+WhatsApp threads with atomic claiming, three-state attendance and an append-only
+financial ledger, built to survive a January registration rush where demand exceeds
+supply and money is on the line from the first minute.
+
+Chosen because Supabase's own documentation, quickstarts and `@supabase/ssr` guidance are
+Next-first, and this project is built by a solo developer working through an agent —
+documentation density matters more here than framework preference.
 
 ## Start every session here
 
@@ -27,22 +31,26 @@ summer-ice/
 │   ├── contracts/      Zod schemas, derived types, API client
 │   └── db/             Drizzle schema, migrations, seed
 ├── apps/
-│   ├── web/             React Router v8, framework mode (loaders/actions + /api/* resource routes)
-│   ├── worker/           pg-boss consumers and schedules (skeleton — no jobs yet)
+│   ├── web/             Next.js App Router — server components fetch, client
+│   │                     components handle interaction, app/api/* route
+│   │                     handlers are the API surface for the future mobile client
 │   └── mobile/           Expo — phase 4, not scaffolded yet
-├── infra/                Compose, Caddyfile, pgBackRest — not scaffolded yet
 ├── docs/
 │   ├── DOMAIN-MODEL.md
 │   └── ARCHITECTURE.md
 └── .claude/rules/        path-scoped rules derived from ARCHITECTURE.md §4
 ```
 
+There is no `apps/worker` and no `infra/` any more. Scheduled and background work
+(reminder ladders, hold sweeps, waitlist offers) moves to Vercel Cron endpoints under
+`apps/web/app/api/*` in a later session — there is no long-running worker process.
+
 Packages are consumed as workspace dependencies by name (`@summerice/core`,
 `@summerice/contracts`, `@summerice/db`) — no build step, no compiled output. Each
 package's `package.json` points `main`/`types` straight at its `index.ts`, and matching
 path aliases in the root and `apps/web` tsconfigs make the same imports resolve for the
-type checker. Apps run their TypeScript directly (Node 24's native type stripping for the
-worker, Vite for web) rather than compiling packages to `dist/` first.
+type checker. `apps/web` compiles its TypeScript itself, via Next's own SWC-based
+toolchain, rather than compiling packages to `dist/` first.
 
 Note on TypeScript project references (re-verified against TypeScript 6.0.3, not a
 TS7-only limitation): real composite project references assume a multi-step build graph —
@@ -66,30 +74,18 @@ step or a `-b` invocation.
 **Always run `npx tsc --noEmit` from the repo root — project-wide — never against an
 individual file or a single package.** The root `tsconfig.json` includes every app and
 package in one program; that single invocation is the only one that reflects whether the
-whole repo actually type-checks. `pnpm install` regenerates `apps/web`'s React Router
-route types (`postinstall` → `react-router typegen`) that the root check depends on — if
-`tsc` reports a route file's `./+types/*` import as missing, run `pnpm install` again
-rather than chasing it as a real error.
+whole repo actually type-checks. Unlike the old React Router setup, the root check does
+**not** depend on generated route types: pages type their own `params`/`props` by hand
+(`params: Promise<{ id: string }>`, per Next's App Router convention) rather than
+importing a generated `./+types/*` module, so `tsc --noEmit` passes even with no `.next/`
+directory present at all.
 
-## apps/worker runs TypeScript directly — no enums, namespaces, or parameter properties
-
-`apps/worker` executes `.ts` files straight through Node 24's built-in type stripping
-(`node src/index.ts`, no build step, no `tsx`/`ts-node`). Type stripping is *erasure*, not
-compilation — it deletes type syntax and runs what's left, and never evaluates types. That
-rules out any TypeScript construct that isn't pure erasable syntax:
-
-- **No `enum`** (including `const enum`) — it compiles to real runtime code, not just
-  types. Use a union of string literals, or a `const` object with `as const`.
-- **No `namespace`/`module` blocks** with runtime members.
-- **No constructor parameter properties** (`constructor(private x: number)`) — they
-  expand into assignment statements the stripper won't generate. Declare the field and
-  assign it in the constructor body instead.
-
-This applies to any module the worker imports, transitively — including everything in
-`packages/core`, `packages/contracts` and `packages/db`. Those packages are consumed by
-`apps/web` too (via Vite, which *does* compile), so this constraint is the tighter of the
-two and effectively governs the shared packages: write them as if Node's stripper will run
-them directly, even where a given file happens to load through Vite instead.
+`pnpm install` still regenerates `apps/web`'s route types via `postinstall` → `next
+typegen` (Next's equivalent of the old `react-router typegen`), and `next dev` / `next
+build` regenerate the same output under `apps/web/.next/types` on every run. That output
+feeds Next's own internal build-time type check and editor tooling, not the root `tsc`
+pass — keep it running via `pnpm install` regardless, since `apps/web`'s own `typecheck`
+script and `next build` both still need it.
 
 ## Rules
 

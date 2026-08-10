@@ -1,4 +1,5 @@
-import { Link } from "react-router";
+import Link from "next/link";
+import type { Metadata } from "next";
 import {
   SLOTS,
   formatDate,
@@ -8,9 +9,9 @@ import {
   statusCounts,
 } from "~/lib/fake-data";
 
-export function meta() {
-  return [{ title: "Overview — Admin — Summer Ice" }];
-}
+export const metadata: Metadata = {
+  title: "Overview — Admin — Summer Ice",
+};
 
 function goalieAlarmClass(goalies: number, capacity: number): string {
   if (goalies === 0) return "border-red-600 bg-red-100 text-red-900 dark:border-red-500 dark:bg-red-950 dark:text-red-200";
@@ -38,7 +39,7 @@ export default function AdminOverview() {
           return (
             <li key={slot.id}>
               <Link
-                to={`/admin/session/${slot.id}`}
+                href={`/admin/session/${slot.id}`}
                 className="block rounded border border-gray-200 p-3 hover:border-gray-400 dark:border-gray-800 dark:hover:border-gray-600"
               >
                 <div className="flex items-baseline justify-between">

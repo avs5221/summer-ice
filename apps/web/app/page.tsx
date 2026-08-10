@@ -1,4 +1,5 @@
-import { Link } from "react-router";
+import Link from "next/link";
+import type { Metadata } from "next";
 import {
   EXTRAS_CLAIMS,
   SEASON,
@@ -9,12 +10,10 @@ import {
   seasonFill,
 } from "~/lib/fake-data";
 
-export function meta() {
-  return [
-    { title: "Summer Ice — 2026 Season" },
-    { name: "description", content: "Summer ice hockey in Leiden. Ten hours a week, register by the hour." },
-  ];
-}
+export const metadata: Metadata = {
+  title: "Summer Ice — 2026 Season",
+  description: "Summer ice hockey in Leiden. Ten hours a week, register by the hour.",
+};
 
 export default function Home() {
   return (
@@ -31,7 +30,7 @@ export default function Home() {
 
       <div className="mt-6">
         <Link
-          to="/register"
+          href="/register"
           className="inline-block rounded bg-gray-950 px-5 py-2.5 font-semibold text-white hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
         >
           Register
@@ -121,14 +120,14 @@ export default function Home() {
                 <div className="flex-shrink-0">
                   {isFull ? (
                     <Link
-                      to="/register"
+                      href="/register"
                       className="text-sm font-medium text-gray-700 underline hover:text-gray-950 dark:text-gray-300 dark:hover:text-white"
                     >
                       Full — join waitlist
                     </Link>
                   ) : (
                     <Link
-                      to="/register"
+                      href="/register"
                       className="text-sm font-medium text-gray-700 underline hover:text-gray-950 dark:text-gray-300 dark:hover:text-white"
                     >
                       Register

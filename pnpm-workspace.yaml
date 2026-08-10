@@ -3,6 +3,9 @@ packages:
   - "apps/*"
 allowBuilds:
   esbuild: true
+  # Native resolver behind eslint-import-resolver-typescript, pulled in
+  # transitively by eslint-config-next. Same trust tier as esbuild above.
+  unrs-resolver: true
 minimumReleaseAgeExclude:
   - pg-protocol@1.16.0
   - pg@8.23.0

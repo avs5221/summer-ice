@@ -7,8 +7,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "types": ["node", "vite/client"],
-    "rootDirs": ["./apps/web", "./apps/web/.react-router/types"],
+    "types": ["node"],
     "paths": {
       "@summerice/core": ["./packages/core/index.ts"],
       "@summerice/contracts": ["./packages/contracts/index.ts"],
@@ -20,8 +19,7 @@
     "apps/web/app/**/*.ts",
     "apps/web/app/**/*.tsx",
     "apps/web/*.ts",
-    "apps/worker/src/**/*.ts",
     "packages/*/*.ts"
   ],
-  "exclude": ["node_modules", "**/node_modules", "**/dist", "**/build", "**/.react-router"]
+  "exclude": ["node_modules", "**/node_modules", "**/dist", "**/build", "**/.next"]
 }
