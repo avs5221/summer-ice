@@ -10,7 +10,10 @@
 //
 //   pnpm db:seed
 import { eq } from "drizzle-orm";
-import { createDb } from "./client.ts";
+// dbDirect(), not dbPooled(): this is a one-off script run from a local
+// machine or CI, the same category as a migration — see
+// docs/ARCHITECTURE.md §5 and client.ts.
+import { dbDirect, type Db } from "./client.ts";
 import {
   levels,
   seasons,
@@ -113,8 +116,6 @@ const CAPACITY_BY_SESSION_TYPE: Record<
 };
 const EXTRAS_PRICE_CENTS = { skater: 1500, goalie: 0 };
 
-type Db = ReturnType<typeof createDb>;
-
 async function seedLevels(db: Db) {
   await db.insert(levels).values(REAL_LEVELS).onConflictDoNothing({ target: levels.name });
   return db.select().from(levels).orderBy(levels.rank);
@@ -182,7 +183,7 @@ async function seedSlotCapacitiesAndLevels(
 }
 
 async function main(): Promise<void> {
-  const db = createDb();
+  const db = dbDirect();
 
   const levelRows = await seedLevels(db);
   console.log("[seed] levels, ordered by rank:");

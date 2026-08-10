@@ -671,6 +671,8 @@ Live fill is a **product feature**, not an engineering nicety. Scarcity drives e
 
 Shown to a goalie, "1/2 goalies" tells the one person who can solve the problem that they're needed.
 
+This section is behaviour only — *what* the numbers mean and *when* they update. How a browser actually receives them with no refresh is an implementation concern; see `ARCHITECTURE.md` (Supabase Realtime, broadcast from a database trigger, as of the Supabase/Vercel stack). The transport has changed more than once during this project's history — see `CONTEXT.md` §5 — and none of those changes altered a single rule on this page: aggregate integers per (slot, position), holds counted as taken for display, excluded from the `spot_open` transition above.
+
 ### Admin fill view
 
 Admins need one dimension players don't: how much of the current headcount is **actually confirmed** versus still unanswered and heading for release.

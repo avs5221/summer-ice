@@ -1,0 +1,31 @@
+# Local development database ONLY. Production is Supabase — see
+# docs/ARCHITECTURE.md §10. This gives a real Postgres to develop and run
+# migrations against without touching the (not-yet-created) Supabase
+# project, and without paying for a dev-tier Supabase branch.
+#
+# Postgres 18 specifically, matching what packages/db/schema/_columns.ts
+# assumes for native uuidv7() — see the schema-conventions note in
+# ARCHITECTURE.md §5 about Supabase's own Postgres version lagging behind.
+#
+# Run via the root scripts: `pnpm db:up` / `pnpm db:down` / `pnpm db:nuke`.
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: summerice
+      POSTGRES_DB: summerice
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set — see .env.example}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U summerice -d summerice"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  pgdata:
