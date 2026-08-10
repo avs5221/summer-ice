@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "24.19.0"
+    "node": "24.x"
   },
   "scripts": {
     "postinstall": "pnpm --filter @summerice/web run typegen",
