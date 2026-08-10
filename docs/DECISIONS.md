@@ -258,3 +258,65 @@ requiring another live database diff to find out.
 **Still not verified:** an actual browser has still never watched `/`
 update live. The diagnosis is as far as it can go without one — see
 `STATE.md`'s "Verified" section for exactly what confirming this requires.
+
+---
+
+### 2026-08-10 — Live fill, browser-verified: the prompt's premise didn't hold
+
+A follow-up session was asked to debug "the live-fill failure on the deployed
+site using browser automation," with three named failure branches to
+diagnose. **The premise was wrong — there is no failure.** Per the session
+ritual, that gets reported rather than worked around; recorded here so the
+next session doesn't re-open this.
+
+No browser-automation MCP tool was available. Installed Playwright
+(`npm install playwright` into a scratch dir) and drove real headless
+Chromium against `https://summer-ice-kappa.vercel.app/` (the correct/current
+Vercel project — confirmed by matching `githubCommitSha` on its latest
+`READY` production deployment against local `origin/main` HEAD, `e778956`;
+a second, unrelated Vercel project in the same team, `summer-ice-2`, is a
+stale fork with a different GitHub repo ID and was not the target).
+Chromium's headless shell needed `libnspr4`/`libnss3`/`libasound2` that
+weren't on the box and there was no root — worked around with `apt-get
+download` (fetches a `.deb` without installing) + `dpkg-deb -x` into a local
+dir + `LD_LIBRARY_PATH`, no sudo required.
+
+With devtools-equivalent capture running (console, `pageerror`, failed
+requests, 4xx/5xx responses, and raw WebSocket frames) and the page open on
+`/`:
+
+1. **All 10 `[live-fill] slot-fill:<uuid> subscription status: SUBSCRIBED`
+   lines appeared** within ~1s of load — one per visible slot.
+2. Updated `slot_capacities` (skater row for the Tuesday 5th/6th Division
+   slot, `capacity` 20 → 18 — 18 chosen over the originally-suggested 12
+   specifically because `ideal_capacity` is 16 there and the check
+   constraint requires `ideal <= capacity`) via the Supabase MCP directly
+   against the row already on screen.
+3. **A `[live-fill] message on slot-fill:<uuid>: {...}` line appeared ~22s
+   later**, correctly scoped to that one slot's topic.
+4. **The rendered DOM updated with no refresh**: the page's text snapshot,
+   taken after the change and after the watch window closed, reads `0/18
+   skaters` for that slot — everything else on the page is still the
+   as-seeded `20`/`10` capacities. Confirms this is not the "stale value
+   reasserted on next render" bug this hook has had before.
+5. No console errors, no `pageerror`s, no failed requests other than one
+   unrelated aborted RSC prefetch for `/admin/session/wed-2130` (ordinary
+   Next.js prefetch-cancel-on-navigate noise, not a live-fill symptom). No
+   CSP violations — confirmed there's no `Content-Security-Policy` response
+   header on the deployed page at all, so there was never anything to
+   violate. The WebSocket to `wss://mmvbjdjwvclfaccgevji.supabase.co/realtime/v1/websocket`
+   opened and stayed open the whole session.
+
+The `slot_capacities` row was set back to `20` afterward — the mutation was
+diagnostic only, not a real registration event, and leaving it at 18 would
+have made `STATE.md`'s seeded-schedule description wrong.
+
+**Conclusion: the full pipeline — trigger → broadcast → WebSocket → React
+state → DOM — works, unmodified, in a real deployed browser.** This closes
+the one gap the previous entry above left open ("an actual browser has
+still never watched `/` update live"). No code change was needed or made
+this session; the fix that mattered (subscribe/message logging) already
+landed in the previous session. If this symptom is reported again, it is
+very unlikely to be this mechanism — look at what's different about the
+report (which slot, which browser, logged in vs not, timing) before
+re-deriving the pipeline from scratch.

@@ -5,20 +5,22 @@ session ritual. If this contradicts what a session prompt assumes, the prompt is
 probably stale — stop and check, don't work around it.
 
 **Last verified:** 2026-08-10, by reading the repo, querying both databases,
-running `tsc --noEmit` directly, and — new this session — running a
-standalone script against the real Supabase Realtime endpoint to observe an
-actual broadcast arrive, not just reading the code that should produce one.
+running `tsc --noEmit` directly, and — new this session — driving real
+headless Chromium (Playwright) against the deployed homepage, changing a
+live `slot_capacities` row via the Supabase MCP while the page was open, and
+watching the DOM update with no refresh.
 
 ---
 
 ## Last commit
 
-`508648c` — "chore: seed ice_sessions on supabase, document rls posture" —
-2026-08-10, matches `origin/main` (this repo pushes promptly; Vercel's latest
-production deployment is built from this exact commit — confirmed via the
-Vercel API, not assumed). This session's own work (live-fill diagnosis,
-diagnostic logging) lands in the commit right after this file is
-regenerated — check `git log -1` if you need the exact hash.
+`e778956` — "diag: verify live-fill pipeline end-to-end, add subscribe/message
+logging" — 2026-08-10, matches `origin/main` (this repo pushes promptly;
+Vercel's latest production deployment, `dpl_3VryDZsNqNAx6ooFxksLKbaCmgQn`, is
+built from this exact commit — confirmed via the Vercel API, not assumed).
+This session's own work (browser-verified live-fill confirmation, no code
+change) lands in the commit right after this file is regenerated — check
+`git log -1` if you need the exact hash.
 
 ## What exists, per package
 
@@ -70,7 +72,7 @@ What has genuinely been proven, versus what merely compiles:
 - **Compiles.** `npx tsc --noEmit`, project-wide root check: 0 errors, as of this commit.
 - **Schema constraints, against a live database.** Migrations have been applied to both a local and the real Supabase Postgres; every table, FK and check constraint exists as designed in both.
 - **`uuidv7()` shim correctness.** Per `ARCHITECTURE.md` §5, verified with 5,000 generated values against a real Postgres 17 container and cross-checked against Postgres 18's native builtin — not by inspection.
-- **Live fill — the transport mechanism, proven; the actual homepage in a browser, still not.** 2026-08-10: diagnosed a report that the deployed homepage's numbers never update live. Directly compared the trigger's broadcast (queried from `realtime.messages` on the live project) against the client's subscription (`use-live-fill.ts`) — topic (`slot-fill:<slots.id>`, both sides), event name (`fill`, both sides), and public/private (`false`, both sides) all matched exactly; no mismatch existed. Confirmed the live Vercel deployment was built from the current `origin/main` HEAD, ruling out the staleness trap `CLAUDE.md` warns about. With code comparison exhausted, verified empirically instead: a standalone Node script using the same `@supabase/supabase-js` client, URL and publishable key subscribed to the same channel and received a real broadcast within seconds of an `UPDATE` on `slot_capacities`. **The full pipeline — trigger → `realtime.send` → replication → channel broadcast → client callback — genuinely works.** See `DECISIONS.md` for the full account. What was missing was observability, now fixed: `use-live-fill.ts` logs subscribe status and every message via `console.debug`, unconditionally (works on the deployed site, not just local dev). **What remains unverified is narrower than before but still real: no one has opened the actual deployed `/` in a browser and watched a number change.** To confirm: open the deployed `/` with devtools open, look for `[live-fill] slot-fill:<uuid> subscription status: SUBSCRIBED` (one per visible slot) shortly after load, then change any `slot_capacities.capacity` on the live project — the console should log `[live-fill] message on slot-fill:<uuid>: {...}` immediately and the row's number should update with no refresh.
+- **Live fill — fully proven end-to-end, in a real browser, against the deployed site.** 2026-08-10 (two sessions): the first diagnosed a reported "numbers never update live" symptom by comparing the trigger's broadcast against the client's subscription (topic, event name, public/private all matched) and then, empirically, confirmed a standalone Node script received a real broadcast — concluding the pipeline worked but had never been *watched* in a browser, and added unconditional `console.debug` logging to `use-live-fill.ts` for exactly that purpose. The second session closed that remaining gap: drove headless Chromium (Playwright) against `https://summer-ice-kappa.vercel.app/`, confirmed all 10 `[live-fill] ... SUBSCRIBED` lines on load, changed a live `slot_capacities.capacity` row via the Supabase MCP while the page stayed open, observed the `[live-fill] message on ...` console line arrive ~22s later, and confirmed the rendered DOM itself changed (`0/18 skaters`, matching the change) with no refresh — ruling out the "stale value reasserted on next render" failure mode this hook has had before. No CSP violations (the deployed page sends no `Content-Security-Policy` header at all), no console errors, no failed requests other than one unrelated aborted Next.js RSC prefetch. **There is no known live-fill bug right now.** Full account, including the environment workaround needed to run a browser at all (no browser-automation MCP tool present, and headless Chromium's shared libs had to be fetched without root via `apt-get download` + `dpkg-deb -x` + `LD_LIBRARY_PATH`), in `DECISIONS.md`.
 - **Homepage (`/`) reads real data.** Confirmed `force-dynamic`, confirmed it queries `dbPooled()` and `getSlotFillOverview` rather than fake data.
 - **`getSlotFillOverview` against the real Supabase project.** Run directly (not through the web app) after seeding: returns all 10 rows, each with a correct next-upcoming `ice_session`, matching the seeded schedule and today's date. This confirms the data and the query are right; it is **not** the same as the browser-level live-fill check above, which is still unproven end-to-end.
 
