@@ -1,0 +1,201 @@
+/* Privacy page — translated from the "Summer Ice Landing" Claude Design
+ * project (Privacy.dc.html), same approach as the other restyled pages:
+ * real classes + media queries instead of the design's inline styles.
+ * Shared tokens (`.page`, `.eyebrow`) come from ../page.module.css.
+ */
+
+.headerBand {
+  background: var(--sky-surface);
+  border-bottom: 1px solid var(--sky-border);
+}
+
+.headerBandInner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 20px 28px;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.main {
+  max-width: 1080px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 36px 28px 64px;
+  display: grid;
+  grid-template-columns: 236px 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .main {
+    padding-right: 96px;
+  }
+}
+
+@media (max-width: 720px) {
+  .main {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Table of contents ────────────────────────────────────────────── */
+
+.tocAside {
+  position: sticky;
+  top: 80px;
+}
+
+@media (max-width: 720px) {
+  .tocAside {
+    position: static;
+  }
+}
+
+.tocLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin-bottom: 12px;
+}
+
+.tocList {
+  display: flex;
+  flex-direction: column;
+  border-left: 1.5px solid var(--border);
+}
+
+.tocLink {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 6px;
+  align-items: baseline;
+  padding: 7px 0 7px 13px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.tocLink:hover {
+  color: var(--foreground);
+}
+
+.tocLinkActive {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 6px;
+  align-items: baseline;
+  padding: 7px 0 7px 13px;
+  margin-left: -1.5px;
+  border-left: 1.5px solid var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.tocNum {
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.6;
+  font-feature-settings: "tnum" 1;
+}
+
+.tocNumActive {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary);
+  font-feature-settings: "tnum" 1;
+}
+
+/* ─── Content ──────────────────────────────────────────────────────── */
+
+.content {
+  max-width: 680px;
+}
+
+.intro {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+  text-wrap: pretty;
+}
+
+.section {
+  margin-top: 52px;
+  scroll-margin-top: 80px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.sectionNum {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--primary);
+  font-feature-settings: "tnum" 1;
+}
+
+.sectionTitle {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.sectionDesc {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--muted-foreground);
+}
+
+.rowList {
+  margin-top: 14px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 20px;
+  padding: 11px 0;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+.rowLabel {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.rowText {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted-foreground);
+}
+
+.inlineLink {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.updated {
+  margin-top: 52px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}

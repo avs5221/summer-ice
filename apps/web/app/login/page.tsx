@@ -54,7 +54,7 @@ export default function LoginPage() {
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <a href="#">Privacy</a>
+          <Link href="/privacy">Privacy</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/#how">How it works</Link>
           <span>© 2026 Summer Ice · Leiden, NL</span>

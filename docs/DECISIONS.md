@@ -1129,3 +1129,65 @@ pass caught and fixed — confirmed via `getAttribute("href")` that both
 `/` and `/login`'s footers now link to `/contact` and that `/` itself
 still renders correctly after the `SiteFooter` extraction. Zero console
 errors throughout.
+
+### 2026-08-10 — `/privacy` implemented from `Privacy.dc.html`; content fact-checked against `DOMAIN-MODEL.md` before shipping, not just laid out
+
+Implemented `Privacy.dc.html`: a header band, a sticky scroll-spy table
+of contents (236px sidebar, 7 numbered sections), and the same
+floating-toggle-plus-no-toggle-footer chrome Contact and Login already
+established. New route — `/privacy` didn't exist before.
+
+**This is a legal document, so its factual claims got checked against
+the real system before anything shipped — not just its layout copied.**
+A privacy policy stating who can see what, or what a payment processor
+does, is a claim about the actual system, unlike marketing copy on the
+landing page. Checked `docs/DOMAIN-MODEL.md` line by line against the
+design's §3 ("Who can see it") and confirmed rather than assumed:
+
+- "Organisers ... everything, including payments" matches the `admin`
+  role exactly (`roles` table: `admin` | `scheduler` | `coach` |
+  `player`; `admin` — Cas, Michael — "everything," per DOMAIN-MODEL's own
+  access table).
+- "Schedulers ... rosters and attendance, no payments" matches the
+  `scheduler` role's documented boundary word for word: "sessions,
+  rosters with names and contact details, attendance, claims, waitlists,
+  polls, notifications" but explicitly *not* "anything financial."
+- "Other players ... first name and surname initial, never contact
+  details" matches DOMAIN-MODEL §9's roster-visibility line exactly:
+  "Players can see who else is on a session, in a reduced form — first
+  name plus surname initial. Naomi sees full names."
+- Hosting "in the EU" matches `ARCHITECTURE.md` §10 (Supabase
+  `eu-central-1`, Vercel `fra1`, both Frankfurt).
+
+Nothing needed correcting here — the design's own copy already tracked
+the domain model closely, likely drawn from the same source. Recorded
+as "checked and confirmed," not skipped, since the alternative (shipping
+a legal page's factual claims unverified because they happened to look
+plausible) isn't a shortcut this kind of page gets to take. "Mollie ...
+handles iDEAL and Wero" was *not* re-litigated — same reasoning as the
+register/how-it-works copy: Michael's standing instruction that Wero is
+iDEAL's own succession path applies here too, not just to marketing
+copy.
+
+**Mechanics:** `toc-nav.tsx` (client) reimplements the design's own
+scroll-spy exactly — the *last* section whose top has crossed 120px from
+the viewport top is "current," via a plain scroll listener, not an
+IntersectionObserver, to match that specific off-by-one-prone logic
+rather than approximate it. All Privacy links across the app
+(`site-footer.tsx`, `login/page.tsx`) now point to `/privacy`; the
+wave-1 `Nav`'s hide-list gained a fifth route.
+
+**Verified:** `npx tsc --noEmit` (root) and `eslint` clean. Headless
+Chromium: scrolled to a middle section and confirmed the TOC highlights
+it, clicked a TOC entry and confirmed the target section actually
+receives the click (not just that nothing threw), light and dark mode,
+a 420px mobile viewport (TOC un-stickies and stacks above content,
+matching the design's own narrow-viewport behavior), and confirmed via
+`getAttribute("href")` that the footer/contact-page cross-links resolve
+correctly. One screenshot artifact investigated rather than assumed
+benign: a faint duplicate logo appeared near the bottom of the
+full-page capture — re-shot with a real `scrollTo` + viewport-only
+screenshot instead of Playwright's `fullPage` stitching, confirmed
+clean, and closed as the same known `position: sticky` capture artifact
+noted earlier this session (now confirmed twice, not just asserted).
+Zero console errors.

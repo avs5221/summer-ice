@@ -36,7 +36,7 @@ export function SiteFooter({ themeToggle = true }: { themeToggle?: boolean }) {
           <Link href="/#schedule">Schedule</Link>
           <Link href="/#how">How it works</Link>
           <Link href="/contact">Contact</Link>
-          <a href="#">Privacy</a>
+          <Link href="/privacy">Privacy</Link>
           {themeToggle && <ThemeToggle />}
         </div>
       </div>
