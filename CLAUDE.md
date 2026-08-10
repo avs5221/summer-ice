@@ -13,14 +13,51 @@ documentation density matters more here than framework preference.
 
 ## Start every session here
 
-Read **`docs/DOMAIN-MODEL.md`** and **`docs/ARCHITECTURE.md`** in full before making changes.
-`DOMAIN-MODEL.md` defines *what* the system does; `ARCHITECTURE.md` defines *how* it is
-built and deployed.
+See **`docs/README.md`** for the full documentation index — what each doc is for and
+which wins in a conflict. The reading order for a fresh session is:
 
-**Where they conflict: `DOMAIN-MODEL.md` wins on behaviour, `ARCHITECTURE.md` wins on
-structure.** If a route file's shape and a data rule seem to disagree, structure questions
-(where code lives, what talks to what) defer to the architecture doc; behaviour questions
-(what the system should actually do) defer to the domain model.
+1. **`docs/STATE.md`** — current factual state. What's built, what's deployed, what's
+   proven versus merely compiles.
+2. **`docs/CONTEXT.md`** — the people, the league's actual operation, and the history of
+   wrong turns, for when a decision needs judgement.
+3. **`docs/DOMAIN-MODEL.md`** — what the system does. Wins on behaviour.
+4. **`docs/ARCHITECTURE.md`** — how it is built and deployed. Wins on structure.
+
+**Explicitly not `docs/WORKFLOW.md`.** That file is a human-facing local-environment guide
+(WSL, VS Code, terminal habits) — it is never relevant to what an agent session needs to
+do and reading it is wasted context.
+
+**Where `DOMAIN-MODEL.md` and `ARCHITECTURE.md` conflict: `DOMAIN-MODEL.md` wins on
+behaviour, `ARCHITECTURE.md` wins on structure.** If a route file's shape and a data rule
+seem to disagree, structure questions (where code lives, what talks to what) defer to the
+architecture doc; behaviour questions (what the system should actually do) defer to the
+domain model.
+
+### Session ritual
+
+**At the start:** read `docs/STATE.md`, then verify it against reality — `git log`, the
+filesystem, the database (both local Docker and Supabase) — before trusting it. If it's
+wrong, correct it before doing anything else. **If a prompt's premise contradicts the
+actual state you find, STOP and report the contradiction rather than working around it —
+the prompt may have been written against a stale view of the repo, and quietly
+accommodating it just launders the staleness forward.**
+
+**At the end, in the same commit as the work:** regenerate `docs/STATE.md` from the
+now-current reality; append to `docs/DECISIONS.md` if a decision was made or reversed;
+update the relevant canonical document (`DOMAIN-MODEL.md` or `ARCHITECTURE.md`) if the
+session surfaced a real spec gap.
+
+### Static prerendering — a live trap, not a historical one
+
+`/admin`, `/register` and `/schedule` are currently statically prerendered, because they
+still read from `apps/web/app/lib/fake-data.ts` rather than the database. **The moment any
+of them reads the database instead, it must also get `export const dynamic =
+"force-dynamic"` (or an equivalent per-request-fresh strategy), or Next will silently bake
+that first build's data into static HTML forever** — the exact "site says a slot is open,
+form says it's locked" bug this project exists to fix, reproduced in a new page. This
+already happened once and was fixed on the homepage; see `docs/ARCHITECTURE.md` §8 ("The
+one cacheable page, and the rule that protects it") for the mechanism and the rule, and
+`docs/DECISIONS.md` for the fix's history.
 
 ## Repository layout
 
