@@ -9,7 +9,7 @@
 // silent data loss dressed up as confirmation. Composing a `mailto:` link
 // instead is honest about what actually happens: it hands off to the
 // user's own mail client with the message pre-filled, same destination
-// ("hello@summerice.nl" — see contact/page.tsx's own note on the address
+// ("info@summerice.nl" — see contact/page.tsx's own note on the address
 // correction) the design's static links point to, and needs no
 // infrastructure this repo doesn't have.
 import { useState } from "react";
@@ -24,7 +24,7 @@ const TOPICS = [
   "Something else",
 ];
 
-const CONTACT_EMAIL = "hello@summerice.nl";
+const CONTACT_EMAIL = "info@summerice.nl";
 
 export function ContactForm() {
   const [sent, setSent] = useState(false);

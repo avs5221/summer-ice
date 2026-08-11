@@ -18,7 +18,9 @@ const TOC: TocEntry[] = [
   { id: "proc", label: "Processors we use" },
   { id: "keep", label: "How long we keep it" },
   { id: "rights", label: "Your rights" },
+  { id: "cancel", label: "Payments and cancellations" },
   { id: "ask", label: "Questions" },
+  { id: "entity", label: "Who we are" },
 ];
 
 export default function PrivacyPage() {
@@ -155,9 +157,49 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section id="ask" className={styles.section}>
+          <section id="cancel" className={styles.section}>
             <div className={styles.sectionHead}>
               <span className={styles.sectionNum}>07</span>
+              <h2 className={styles.sectionTitle}>Payments and cancellations</h2>
+            </div>
+            <p className={styles.sectionDesc}>
+              Bookings and payments are governed by Dutch consumer law, not by this page — this is a summary of
+              the parts that matter most; the{" "}
+              <a
+                href="https://www.summerice.nl/terms-conditions/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.inlineLink}
+              >
+                full terms and conditions
+              </a>{" "}
+              have the rest.
+            </p>
+            <div className={styles.rowList}>
+              <div className={styles.row}>
+                <div className={styles.rowLabel}>14-day cooling-off</div>
+                <div className={styles.rowText}>
+                  You can withdraw within 14 days of booking. A full refund if no sessions have happened yet; a
+                  pro-rated refund — the sessions already delivered deducted — if some have.
+                </div>
+              </div>
+              <div className={styles.row}>
+                <div className={styles.rowLabel}>After 14 days</div>
+                <div className={styles.rowText}>Cancellations are non-refundable unless the specific booking says otherwise.</div>
+              </div>
+              <div className={styles.row}>
+                <div className={styles.rowLabel}>Governing law</div>
+                <div className={styles.rowText}>
+                  Dutch consumer law, including the Burgerlijk Wetboek, and applicable EU consumer protection
+                  rules.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="ask" className={styles.section}>
+            <div className={styles.sectionHead}>
+              <span className={styles.sectionNum}>08</span>
               <h2 className={styles.sectionTitle}>Questions</h2>
             </div>
             <p className={styles.sectionDesc}>
@@ -165,11 +207,33 @@ export default function PrivacyPage() {
               <Link href="/contact" className={styles.inlineLink}>
                 contact page
               </Link>{" "}
-              and a person will answer.
+              and a person will answer, or reach us directly at{" "}
+              <a href="mailto:info@summerice.nl" className={styles.inlineLink}>
+                info@summerice.nl
+              </a>{" "}
+              or +31 6 18367156.
             </p>
           </section>
 
-          <p className={styles.updated}>Last updated 10 August 2026.</p>
+          <section id="entity" className={styles.section}>
+            <div className={styles.sectionHead}>
+              <span className={styles.sectionNum}>09</span>
+              <h2 className={styles.sectionTitle}>Who we are</h2>
+            </div>
+            <p className={styles.sectionDesc}>Summer Ice is a trade name of The Goalie Store.</p>
+            <div className={styles.rowList}>
+              <div className={styles.row}>
+                <div className={styles.rowLabel}>KVK</div>
+                <div className={styles.rowText}>81043333</div>
+              </div>
+              <div className={styles.row}>
+                <div className={styles.rowLabel}>VAT (BTW)</div>
+                <div className={styles.rowText}>NL003525536B16</div>
+              </div>
+            </div>
+          </section>
+
+          <p className={styles.updated}>Last updated 11 August 2026.</p>
         </div>
       </div>
 

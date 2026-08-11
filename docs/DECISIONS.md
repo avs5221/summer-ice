@@ -1306,3 +1306,64 @@ very top of each page, meaning it isn't visible until scrolled down to
 it, the opposite of a fixed element. Clicked and confirmed dark-mode
 toggled successfully on every page, including register post-fix (the
 same click that previously timed out). Zero console errors throughout.
+
+### 2026-08-11 — Privacy page grounded in the real business: real Terms & Conditions, real KVK/BTW, real contact address
+
+Michael: "The privacy page needs to be updated to synthesize the info
+from https://www.summerice.nl/terms-conditions/. Also, the true KVK
+info from the bottom of summerice.nl needs to be included."
+
+**Couldn't fetch either source — reported the blocker instead of
+guessing.** `WebFetch` returned `403 Forbidden` on the terms page, the
+bare domain, and a `web.archive.org` fallback; `web.archive.org` itself
+turned out to be blocked outright for the tool; `WebSearch` found
+nothing relevant (an unrelated ice-cream-seller Facebook page came up
+under the same name — noted and discarded, not treated as a lead). A
+privacy page is exactly the place where fabricating a KVK number or
+invented terms language to fill a gap would be a real integrity
+problem, not a shortcut — asked Michael to paste the content rather
+than proceeding without it.
+
+**What changed, once he did — two genuinely new pieces of ground
+truth, not just formatting:**
+
+- **A new §07, "Payments and cancellations"**, synthesizing (not
+  reproducing verbatim — the real terms run to ten sections covering
+  liability, health and safety, participant responsibilities, none of
+  which belong on a *privacy* page) the parts of the real terms that
+  are actually privacy-page-adjacent: the 14-day statutory cooling-off
+  period (Dutch BW Art. 6:230o–6:230s), pro-rated refunds once sessions
+  have already been delivered, non-refundable after 14 days unless
+  stated otherwise, and the Dutch-consumer-law/EU-consumer-protection
+  governing-law statement — with a real external link to the full terms
+  rather than a promise to reproduce them. Recognized this content is
+  contract law, not data privacy, and deliberately kept it to a
+  three-row summary plus a link out rather than importing all ten
+  sections onto a page that isn't the right home for them.
+- **A new §09, "Who we are"**: the real legal entity ("Summer Ice is a
+  trade name of The Goalie Store"), KVK `81043333`, VAT `NL003525536B16`
+  — standard GDPR Article 13 data-controller identification a privacy
+  policy is supposed to carry, and simply wasn't checkable before now.
+  §08 ("Questions") also gained the real direct contact
+  (`info@summerice.nl`, `+31 6 18367156`) alongside the existing
+  `/contact` link.
+- TOC grew from 7 entries to 9 to match.
+
+**Found and fixed a related, previously-unverifiable guess while doing
+this:** the Contact page's email has read `hello@summerice.nl` since
+the `.club`→`.nl` domain correction two sessions ago — a corrected
+domain, but a guessed local part, never confirmed. The real terms page
+gives the actual address: `info@summerice.nl`. Corrected in both
+places it lived (`contact/page.tsx`'s sidebar link,
+`contact-form.tsx`'s `CONTACT_EMAIL` constant) rather than left
+standing now that better evidence exists — not something Michael asked
+for in this message, but the same class of fix as the domain
+correction itself, flagged rather than done silently.
+
+**Verified:** `npx tsc --noEmit` (root) and `eslint` clean. Headless
+Chromium: confirmed 9 TOC entries render, the external terms link
+resolves to the real URL with `target="_blank"`, both the new §08 email
+link and the Contact page's corrected email link point to
+`info@summerice.nl`, scroll-spy still correctly highlights §07 when
+scrolled to it, dark mode intact on the new sections, zero console
+errors.

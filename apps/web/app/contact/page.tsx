@@ -38,10 +38,11 @@ export default function ContactPage() {
             {/* The design's own static link said hello@summerice.club —
                 ".club" was the self-hosted plan's now-gone staging
                 subdomain (ARCHITECTURE.md §10), not this project's real
-                domain (summerice.nl, per ARCHITECTURE.md's opening
-                section). Corrected rather than shipped verbatim. */}
-            <a href="mailto:hello@summerice.nl" className={styles.sideEmail}>
-              hello@summerice.nl
+                domain. First corrected to a guessed "hello@summerice.nl";
+                replaced again here with the actual address confirmed from
+                the real site's own terms-and-conditions page. */}
+            <a href="mailto:info@summerice.nl" className={styles.sideEmail}>
+              info@summerice.nl
             </a>
             <p className={styles.sideText}>For anything about registration, payment, or your slot.</p>
           </div>
