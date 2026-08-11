@@ -196,19 +196,40 @@ terms link resolves correctly with `target="_blank"`, both new/
 corrected email links point to `info@summerice.nl`, scroll-spy and dark
 mode intact. Zero console errors. Full account in `DECISIONS.md`.
 
+**Same day, once more:** Michael, right after the theme-toggle-unify
+pass above shipped: "It looks like the light/dark toggle is still stuck
+in the footer." That pass's `position: absolute` fix was correct on its
+own terms but didn't solve the actual complaint — `.page`'s box ends
+flush with the footer, so the toggle's default `bottom: 24px` placed it
+*inside* the footer's own rendered band, visually indistinguishable
+from a footer item even though structurally separate. Fixed with one
+line: `.page { padding-bottom: 100px }`, giving the toggle genuine empty
+space below the footer to occupy instead of sharing its row. Applies
+uniformly to all six pages via the shared `.page` class. Re-ran the
+prior pass's six-page Playwright suite unchanged (still one toggle
+each, still `position: absolute`, still a working click) to confirm no
+regression, then confirmed visually (landing full-page, login) that the
+toggle now sits clearly below the footer's band. Zero console errors.
+Full account in `DECISIONS.md`.
+
 ---
 
 ## Last commit
 
 This file is regenerated as part of the same commit it describes, so it
-can't name its own hash in advance — check `git log -1`. That commit
-grounds `/privacy` in the real business: a new §07 synthesizing the
-real summerice.nl terms and conditions (pasted in by Michael after this
-session's own fetch attempts were blocked — 403s and an unfetchable
-archive.org), a new §09 with the real KVK/VAT/trade-name, and a
-related correction to the Contact page's email (a guessed local part
-replaced with the confirmed real one). The commit before it (same day)
-unifies the theme toggle to one placement across all six restyled
+can't name its own hash in advance — check `git log -1`. That commit is
+a one-line follow-up to the one before it: `.page { padding-bottom:
+100px }`, because the earlier `position: absolute` fix put the toggle
+in the right *positioning mode* but not enough clearance to actually
+read as separate from the footer — Michael caught it immediately after
+the previous commit shipped. The commit before that grounds `/privacy`
+in the real business: a new §07 synthesizing the real summerice.nl
+terms and conditions (pasted in by Michael after this session's own
+fetch attempts were blocked — 403s and an unfetchable archive.org), a
+new §09 with the real KVK/VAT/trade-name, and a related correction to
+the Contact page's email (a guessed local part replaced with the
+confirmed real one). The commit before *that* unifies the theme toggle
+to one placement across all six restyled
 pages — `position: absolute` against `.page`, not `fixed` and not
 embedded in `SiteFooter` — per direct product feedback, and fixes a
 real click-blocking bug on `/register` found by testing rather than

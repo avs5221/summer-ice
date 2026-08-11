@@ -15,6 +15,15 @@
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  /* Reserves clear space below the footer for the absolutely-positioned
+   * ThemeToggle (see below) to sit in. Without this, the toggle's default
+   * `bottom: 24px` lands inside the footer's own vertical band — visually
+   * indistinguishable from "one more thing in the footer row," which is
+   * exactly what it's not supposed to look like (per direct feedback: it
+   * read as still stuck in the footer even after moving out of the
+   * footer's own flex layout structurally). Genuine visual separation, not
+   * just a different parent in the DOM. */
+  padding-bottom: 100px;
 }
 
 /* ─── Nav ──────────────────────────────────────────────────────────── */

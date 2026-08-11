@@ -1367,3 +1367,35 @@ link and the Contact page's corrected email link point to
 `info@summerice.nl`, scroll-spy still correctly highlights §07 when
 scrolled to it, dark mode intact on the new sections, zero console
 errors.
+
+### 2026-08-11 — Theme toggle still read as "in the footer" after the position fix; the actual complaint was overlap, not the DOM
+
+Michael, immediately after the previous entry's fix landed: "It looks
+like the light/dark toggle is still stuck in the footer. Sorry I missed
+it earlier." Worth recording precisely because the earlier fix *was*
+correct on its own terms — `position: absolute` against `.page`, not
+`fixed`, not a child of `SiteFooter` — and still didn't satisfy the
+actual request. The gap: `.page`'s box ends exactly where the footer
+ends, so the toggle's default `bottom: 24px` placed it vertically
+*inside* the footer's own rendered band, just to the right of its link
+row. Structurally separate, visually indistinguishable from "one more
+footer item" — confirmed by re-examining that pass's own screenshots,
+where this is plainly visible in hindsight.
+
+**Fix: `.page` gained `padding-bottom: 100px`.** The toggle still
+anchors to `.page`'s bottom edge the same way; the difference is that
+edge now sits 100px past the footer instead of flush with it, so the
+toggle occupies genuine empty space below the footer rather than
+sharing its band. A CSS-only change — no component, no prop, applies to
+all six pages uniformly through the shared `.page` class every one of
+them already uses (including `/login`, whose own simpler footer had the
+identical overlap).
+
+**Verified:** re-ran the same six-page Playwright suite from the
+previous entry unchanged (one toggle each, `position: absolute`,
+working click, dark-mode toggles) — all still passed after the padding
+change, confirming it didn't regress the actual mechanics. Then looked
+at the screenshots specifically for the thing that was actually wrong:
+confirmed visually, on both landing (full-page) and login, that the
+toggle now sits in clear space below the footer's border and background
+band, not overlapping its row. Zero console errors.
