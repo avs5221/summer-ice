@@ -30,7 +30,10 @@ const RELEASE_HOURS = 48;
 export default function HowItWorksPage() {
   return (
     <div className={shared.page}>
-      <SiteNav active="how" />
+      {/* No `active` — "How it works" is no longer a nav destination at
+          all (design handoff, 2026-08-11), matching Contact/Privacy's
+          own no-active-item nav exactly. */}
+      <SiteNav />
 
       <div className={styles.headerBand}>
         <div className={styles.headerBandInner}>

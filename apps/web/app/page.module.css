@@ -7,7 +7,6 @@
  */
 
 .page {
-  position: relative;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -15,15 +14,6 @@
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  /* Reserves clear space below the footer for the absolutely-positioned
-   * ThemeToggle (see below) to sit in. Without this, the toggle's default
-   * `bottom: 24px` lands inside the footer's own vertical band — visually
-   * indistinguishable from "one more thing in the footer row," which is
-   * exactly what it's not supposed to look like (per direct feedback: it
-   * read as still stuck in the footer even after moving out of the
-   * footer's own flex layout structurally). Genuine visual separation, not
-   * just a different parent in the DOM. */
-  padding-bottom: 100px;
 }
 
 /* ─── Nav ──────────────────────────────────────────────────────────── */
@@ -129,7 +119,7 @@
 .heroInner {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 44px 28px 48px;
+  padding: 34px 28px 38px;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 40px;
@@ -220,15 +210,6 @@
   font-size: 14px;
 }
 
-.btnSun {
-  background: var(--sun);
-  color: oklch(0.15 0.06 75);
-  padding: 12px 24px;
-  border-radius: 9px;
-  font-weight: 700;
-  font-size: 14px;
-}
-
 .heroLogo {
   width: clamp(96px, 11vw, 140px);
   height: clamp(96px, 11vw, 140px);
@@ -268,7 +249,7 @@
 }
 
 .stat {
-  padding: 18px 0 18px 24px;
+  padding: 13px 0 13px 24px;
   border-right: 1px solid var(--border);
 }
 
@@ -302,14 +283,14 @@
   max-width: 1080px;
   margin: 0 auto;
   width: 100%;
-  padding: 40px 28px 64px;
+  padding: 26px 28px 64px;
   display: flex;
   flex-direction: column;
-  gap: 56px;
+  gap: 52px;
 }
 
 .sectionHead {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .sectionTitle {
@@ -337,8 +318,8 @@
 
 .scheduleHead {
   display: grid;
-  grid-template-columns: 132px 1fr 200px 120px;
-  padding: 9px 24px;
+  grid-template-columns: 132px 1fr 196px 140px;
+  padding: 8px 24px;
   background: var(--bg-subtle);
   border-bottom: 1px solid var(--border);
 }
@@ -373,10 +354,10 @@
 
 .row {
   display: grid;
-  grid-template-columns: 132px 1fr 200px 120px;
+  grid-template-columns: 132px 1fr 196px 140px;
   align-items: center;
   padding: 0 24px;
-  min-height: 60px;
+  min-height: 52px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -456,13 +437,19 @@
 
 .claimBtn {
   display: inline-block;
-  background: var(--primary);
-  color: var(--primary-foreground);
+  background: transparent;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
   padding: 7px 16px;
   border-radius: 8px;
-  border: 0;
   font-weight: 700;
   font-size: 12px;
+  white-space: nowrap;
+}
+
+.claimBtn:hover {
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .waitlistBtn {
@@ -479,42 +466,115 @@
 
 /* ─── Drop-in banner ───────────────────────────────────────────────── */
 
-.dropin {
-  background: var(--card);
-  border: 1.5px solid var(--border);
+/* Replaces the old single "drop-in" banner — the league actually has
+ * *two* non-season entry points (reserves list, drop-in), and the old
+ * card only named one, so the reserves route was missing from the
+ * homepage entirely. Sun surface, not the neutral card the closing CTA
+ * band used to use — sun now means "one-off / week-to-week" consistently,
+ * which is also why the closing band moved off it (see .ctaSection). */
+.waysIn {
+  background: var(--sun-lo);
+  border: 1.5px solid var(--sun-border);
   border-radius: var(--radius-cd);
-  box-shadow: var(--shadow-cd);
   padding: 26px 30px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 32px;
-  align-items: center;
 }
 
-@media (max-width: 640px) {
-  .dropin,
-  .ctaSection {
-    grid-template-columns: 1fr !important;
-  }
-
-  .dropin button,
-  .ctaSection button {
-    width: 100%;
-  }
+.waysInEyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  /* Not var(--primary) — this section lives on the sun surface, and
+   * primary-on-sun doesn't have the contrast the rest of the page's
+   * eyebrows rely on. */
+  color: var(--sun-text-on-lo);
+  margin-bottom: 8px;
 }
 
-.dropinTitle {
+.waysInTitle {
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.02em;
   margin-bottom: 6px;
 }
 
-.dropinDesc {
+.waysInDesc {
   font-size: 13px;
   line-height: 1.6;
   color: var(--muted-foreground);
-  max-width: 520px;
+  max-width: 560px;
+}
+
+.waysInList {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.waysInRow {
+  display: grid;
+  grid-template-columns: 132px 1fr auto;
+  gap: 20px;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid var(--sun-border);
+}
+
+@media (max-width: 640px) {
+  .waysInRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.waysInLabel {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.waysInText {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+.waysInActionFilled {
+  display: inline-block;
+  background: var(--sun);
+  color: oklch(0.15 0.06 75);
+  border: 0;
+  padding: 10px 20px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.waysInActionOutline {
+  display: inline-block;
+  background: transparent;
+  border: 1.5px solid var(--sun-border);
+  color: var(--sun-text-on-lo);
+  padding: 10px 20px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.waysInActionOutline:hover {
+  background: var(--sun);
+  color: oklch(0.15 0.06 75);
+}
+
+@media (max-width: 640px) {
+  .ctaSection {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ctaSection button {
+    width: 100%;
+  }
 }
 
 /* ─── How it works ─────────────────────────────────────────────────── */
@@ -556,6 +616,32 @@
   font-size: 13px;
   line-height: 1.65;
   color: var(--muted-foreground);
+}
+
+/* Nav no longer carries a link to /how-it-works (see site-nav.tsx) — this
+ * is that page's other entry point. 32px right padding lines its right
+ * edge up with the buttons inside the cards above it. */
+.howLinkRow {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 32px;
+}
+
+.howLink {
+  display: inline-block;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--foreground);
+  padding: 11px 22px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.howLink:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 /* ─── Rink ─────────────────────────────────────────────────────────── */
@@ -604,9 +690,13 @@
 
 /* ─── CTA banner ───────────────────────────────────────────────────── */
 
+/* Off the sun surface onto the neutral card — sun now means "one-off /
+ * week-to-week" consistently (see .waysIn above), so the season closer,
+ * which is a season commitment, moved to match. */
 .ctaSection {
-  background: linear-gradient(108deg, var(--sun-lo) 0%, color-mix(in oklab, var(--sun-lo) 25%, transparent) 75%);
-  border: 1.5px solid var(--sun-border);
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-cd);
   border-radius: var(--radius-cd);
   padding: 30px 34px;
   display: grid;
@@ -657,7 +747,11 @@
 .footerInner {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 22px 28px 34px;
+  /* Bottom padding is 76px, not 34px: 24px inset + the 44px fixed
+   * ThemeToggle + 8px clearance, so it doesn't sit over "Privacy" and
+   * make it unclickable — the same class of bug register's checkout bar
+   * had, this time the toggle causing it instead of being the victim. */
+  padding: 22px 28px 76px;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -687,18 +781,14 @@
   gap: 18px;
 }
 
-/* Sits in the bottom-right corner of the page (`.page` is `position:
- * relative` — see below), not the viewport: `position: absolute`, not
- * `fixed`, so it scrolls away with the rest of the page rather than
- * staying pinned on screen or living inside the footer's own layout. One
- * placement for every page now, replacing the two the source design used
- * inconsistently across its own files (footer-embedded on some,
- * viewport-fixed on others) — see theme-toggle.tsx. */
+/* Fixed to the viewport corner, not the page: stays on screen as the
+ * page scrolls. One placement for every page — see theme-toggle.tsx for
+ * the two earlier variants this replaced, in two rounds. */
 .themeToggle {
-  position: absolute;
+  position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 5;
+  z-index: 60;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,15 +1,16 @@
 "use client";
 
-// Light/dark toggle. Lives in the bottom-right corner of the page itself
-// (positioned against `.page`, which is `position: relative` — see
-// page.module.css) rather than pinned to the viewport or embedded in a
-// footer's link row: it scrolls away with the rest of the page instead of
-// staying fixed on screen, and isn't laid out as just another footer
-// link. One consistent placement across every page now — the two earlier
-// variants (a small bordered icon inside the footer's link row on some
-// pages, a viewport-fixed button on others, inherited from the source
-// design's own inconsistency across its files) were reconciled to this
-// single approach per direct product feedback rather than kept as-is.
+// Light/dark toggle. `position: fixed` in the bottom-right corner of the
+// viewport — stays on screen while the page scrolls, rather than sitting
+// in the page's own bottom-right corner and scrolling out of view. One
+// consistent placement across every page (design handoff, 2026-08-11,
+// "design_handoff_landing_ctas"), replacing an earlier `position:
+// absolute` reconciliation (per direct product feedback at the time)
+// that this handoff explicitly reverses — see DECISIONS.md for both
+// rounds. `z-index: 60` clears the sticky nav and register's fixed
+// checkout bar; the footer's own bottom padding was increased instead
+// (`page.module.css`'s `.footerInner`) so the button doesn't sit over
+// "Privacy" and make it unclickable.
 //
 // Toggles the `.dark` class on <html> — see globals.css's
 // `@custom-variant dark`, which makes every `dark:` Tailwind utility

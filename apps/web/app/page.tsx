@@ -82,9 +82,6 @@ export default async function Home() {
               <Link href="/register" className={styles.btnPrimary}>
                 Sign me up →
               </Link>
-              <a href="#schedule" className={styles.btnSun}>
-                See the schedule
-              </a>
             </div>
           </div>
           <Image src="/logo-circle.png" alt="" width={140} height={140} className={styles.heroLogo} priority />
@@ -145,18 +142,40 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className={styles.dropin}>
-          <div>
-            <div className={styles.eyebrow}>Not ready for the season?</div>
-            <h2 className={styles.dropinTitle}>Skate a single night first.</h2>
-            <p className={styles.dropinDesc}>
-              When a registered player can&rsquo;t make their week, that spot opens up. Claim one, come skate,
-              and see whether the level suits you before committing to a season.
-            </p>
+        <section className={styles.waysIn}>
+          <div className={styles.waysInEyebrow}>Two more ways in</div>
+          <h2 className={styles.waysInTitle}>Can&rsquo;t commit to the whole summer?</h2>
+          <p className={styles.waysInDesc}>
+            Then play week to week instead. Every week someone can&rsquo;t make their night, and that spot opens
+            to anyone — neither of these is a queue for a season slot.
+          </p>
+          <div className={styles.waysInList}>
+            <div className={styles.waysInRow}>
+              <div className={styles.waysInLabel}>Reserves list</div>
+              <div className={styles.waysInText}>
+                Ask to be added to a slot&rsquo;s reserves and we message you whenever a spot opens that week.
+                First come, first served.
+              </div>
+              {/* Points at /contact, not a register-flow action, because the
+                  real copy this is sourced from says to reach out — see
+                  README's "Open question" in the design bundle. If reserves
+                  become self-serve, this should move into /register and
+                  read "Join the reserves →" instead. */}
+              <Link href="/contact" className={styles.waysInActionFilled}>
+                Ask to be added →
+              </Link>
+            </div>
+            <div className={styles.waysInRow}>
+              <div className={styles.waysInLabel}>Drop-in</div>
+              <div className={styles.waysInText}>
+                Already know you&rsquo;re free tonight? Take an open spot as you find it, without being on any
+                list.
+              </div>
+              <Link href="/register" className={styles.waysInActionOutline}>
+                See open spots →
+              </Link>
+            </div>
           </div>
-          <Link href="/register" className={styles.btnSun} style={{ whiteSpace: "nowrap" }}>
-            Claim a drop-in spot →
-          </Link>
         </section>
 
         <section id="how">
@@ -188,6 +207,11 @@ export default async function Home() {
                 arrange yourself.
               </p>
             </div>
+          </div>
+          <div className={styles.howLinkRow}>
+            <Link href="/how-it-works" className={styles.howLink}>
+              Read how it all works →
+            </Link>
           </div>
         </section>
 

@@ -47,7 +47,7 @@ export function LandingSlotRow({ slot }: { slot: LandingSlot }) {
         </div>
         <div className={styles.cellAction}>
           <Link href="/register" className={styles.waitlistBtn}>
-            Join waitlist →
+            Join reserves →
           </Link>
         </div>
       </div>
@@ -73,7 +73,7 @@ export function LandingSlotRow({ slot }: { slot: LandingSlot }) {
       </div>
       <div className={styles.cellAction}>
         <Link href="/register" className={styles.claimBtn}>
-          Claim →
+          Season spot →
         </Link>
       </div>
     </div>

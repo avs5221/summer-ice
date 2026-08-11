@@ -1399,3 +1399,121 @@ at the screenshots specifically for the thing that was actually wrong:
 confirmed visually, on both landing (full-page) and login, that the
 toggle now sits in clear space below the footer's border and background
 band, not overlapping its row. Zero console errors.
+
+### 2026-08-11 — Design handoff bundle: theme toggle reverted to fixed (again), "How it works" demoted, landing CTA hierarchy rebuilt
+
+Michael handed off a zip (`design_handoff_landing_ctas`, synced from the
+design project as of `2026-08-11T06:19:30Z`) with an unusually detailed
+README — exact pixel values, exact copy, a stated fidelity level
+("final colors, type, and spacing... every color is an existing
+token"), and its own accounting of what changed since the last sync.
+Cross-checked the README's claims against the bundled `.dc.html` files
+directly rather than trusting the prose alone (all six pages' nav/
+footer markup, the landing page's new sections) — everything matched.
+
+**§1 — the theme toggle flips back to `position: fixed`, explicitly
+reversing yesterday's two rounds of fixes.** The README says so
+outright: "This reverses the earlier reconciliation — the current file
+comments describing the absolute behaviour as intentional need
+updating." Worth being explicit about rather than quietly implementing:
+this is a direct contradiction of Michael's own two prior instructions
+in this same session ("should not be pinned... should scroll with the
+page," then the footer-overlap follow-up). Treated as authoritative
+anyway — the README demonstrates specific awareness of the current
+absolute-positioned state it's reversing, which reads as an informed
+decision made through the design tool after seeing the result, not a
+stale artifact that missed the conversation. Implemented as specified:
+`.themeToggle` back to `position: fixed`, `z-index: 60` (was `5` —
+needs to clear the sticky nav and register's checkout bar again, the
+original reason it was that high before yesterday's absolute pass
+dropped it). `.page`'s now-pointless `position: relative` and
+`padding-bottom: 100px` (both existed only to serve the absolute
+approach) removed rather than left as dead CSS. The README's own fix
+for the toggle-over-footer problem is different this time, and more
+direct: `.footerInner`'s bottom padding goes `34px` → `76px` (24px
+inset + 44px button + 8px clearance) instead of adding space to `.page`
+— the footer makes room for the button sitting over it, rather than the
+page making room for the button below the footer.
+
+**§2 — "How it works" removed from persistent nav.** Dropped from both
+`SiteNav` (the `active` union loses `"how"`) and `SiteFooter` entirely.
+Still reachable — the landing page's own `#how` section gets a new
+"Read how it all works →" link (§4d below), and Contact's sidebar note
+was already pointing there and stays untouched (confirmed by grep,
+since none of this pass's edits touched `contact/page.tsx` directly).
+
+**§3 — landing page vertical rhythm**, nine exact padding/gap value
+changes across `.heroInner`, `.stat`, `.main`, `.sectionHead`, `.row`,
+`.scheduleHead` (all in `page.module.css`) to bring the schedule table
+above the fold. Applied verbatim from the README's table.
+
+**§4 — the actual point of the handoff: one filled button per zone,
+color carries meaning.** The problem statement in the README is worth
+recording because it's a real critique of what shipped two sessions
+ago: season signup appeared as three different verbs (nav "Register,"
+hero "Sign me up," ten filled "Claim →" row buttons), "See the
+schedule" pointed at a table already on screen, and the drop-in path
+read as a consolation prize with no reserves-list option at all.
+
+- Hero: removed the `.btnSun` "See the schedule" link, one `.btnPrimary`
+  remains.
+- Schedule rows: `.claimBtn` filled→outlined (fills on hover), "Claim →"
+  → "Season spot →". `.waitlistBtn` unchanged, "Join waitlist →" →
+  "Join reserves →" — the actual ambiguity fix, since a full slot's
+  action is that slot's own reserves list, not a season queue.
+- The `.dropin` section — one card, one route — is gone, replaced by
+  `.waysIn` ("Two more ways in"): two named, distinguishable routes
+  (reserves list → `/contact`, filled sun; drop-in → `/register`,
+  outlined sun), sourced from copy the README attributes to the
+  original site ("it is also possible to join sessions on a
+  week-to-week basis..."). The reserves route didn't exist on the
+  homepage at all before this.
+- New `.howLinkRow`/`.howLink` after the three `.howCard`s — the
+  replacement entry point to `/how-it-works` now that nav doesn't carry
+  it.
+- `.ctaSection` moved off the sun gradient onto the neutral card — sun
+  now means "one-off/week-to-week" consistently after `.waysIn` claimed
+  it, so the season-commitment closer (a season action, not a one-off)
+  moved to match, per the same color-carries-meaning rule.
+- `.btnSun` is fully unused after all of the above (confirmed by
+  grep across the whole `apps/web` tree, not assumed) — removed as dead
+  code rather than left "in case," even though the README's own aside
+  ("still used elsewhere — see 4c") expected it to survive. It didn't:
+  the two new sun buttons in `.waysIn` need `10px 20px`/`13px` sizing,
+  `.btnSun` was `12px 24px`/`14px` (the hero's size) — genuinely
+  different specs, not reusable verbatim, so dedicated classes were the
+  correct call regardless of what the aside anticipated.
+
+**One deliberate content judgment call, flagged rather than resolved
+silently:** the README itself poses an open question — "Ask to be
+added" points at `/contact` because the real source copy says to reach
+out, but if reserves become self-serve later it should point into
+`/register` and read "Join the reserves →" instead. Implemented exactly
+as specified (`/contact`, "Ask to be added →") and left the open
+question as an inline code comment at the call site rather than
+guessing which way product intends to take it.
+
+**Not committed:** the handoff zip itself
+(`apps/web/Summer ice hockey landing page.zip`) — a transient input
+artifact, the same treatment every `.dc.html` design reference has had
+all session: read from, translated into real Next.js/CSS-module code,
+never checked into the repo itself.
+
+**Verified:** `npx tsc --noEmit` (root) and `eslint` clean. Headless
+Chromium: confirmed zero "How it works" nav links across all six pages
+(`nav a` count check, not just eyeballing — Privacy/How It Works's TOC
+`<nav>` inflates the raw link count, accounted for that rather than
+misreading it as a bug), exactly one hero action button, all ten rows
+read "Season spot →", the `.waysIn` links resolve to `/contact` and
+`/register` respectively, the how-it-works link resolves to
+`/how-it-works`, the toggle's computed `position` is `"fixed"` and —
+the direct proof it now stays on screen — its bounding box is still
+inside the 900px viewport when scrolled to page-top (the opposite of
+last round's "proof" that it scrolled away). Clicked it successfully on
+every page including register (still clears the checkout bar, unchanged
+`offsetBottom={100}`), and confirmed the footer's "Privacy" link is
+still clickable despite the toggle now sitting fixed over that corner —
+the actual bug the padding change exists to prevent, not just "it
+looks fine." 420px mobile confirmed the new `.waysInRow`s collapse to a
+single column with the action left-aligned below the text, matching
+the README's responsive note. Zero console errors throughout.

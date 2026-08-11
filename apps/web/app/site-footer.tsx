@@ -12,13 +12,15 @@ import styles from "./page.module.css";
 // "Schedule" is `/#schedule`, not bare `#schedule` — that id only exists
 // on "/" itself, so a bare fragment link only works when this footer
 // happens to render there. The full path lets it work correctly from
-// Contact too. "How it works" points at its own real page now that one
-// exists, not `/#how`'s landing-page teaser section.
+// Contact too.
 //
-// No theme toggle lives in here (it used to, on some pages, per an
-// earlier revision — see DECISIONS.md and theme-toggle.tsx): every page
-// now renders exactly one `<ThemeToggle />` directly, positioned against
-// `.page` itself rather than laid out as a footer link.
+// "How it works" was removed (design handoff, 2026-08-11,
+// "design_handoff_landing_ctas" — same reasoning as SiteNav dropping
+// it: not critical enough to earn persistent placement). Links are now
+// Schedule · Contact · Privacy.
+//
+// No theme toggle lives in here — every page renders its own standalone
+// `<ThemeToggle />` (fixed to the viewport corner — see theme-toggle.tsx).
 export function SiteFooter() {
   return (
     <footer className={styles.footer}>
@@ -32,7 +34,6 @@ export function SiteFooter() {
         <span>© {SEASON.startDate.getFullYear()} · Leiden, NL</span>
         <div className={styles.footerLinks}>
           <Link href="/#schedule">Schedule</Link>
-          <Link href="/how-it-works">How it works</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/privacy">Privacy</Link>
         </div>

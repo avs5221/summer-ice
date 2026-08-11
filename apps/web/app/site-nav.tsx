@@ -19,14 +19,16 @@ import styles from "./page.module.css";
 // `active === "login"` (per Login.dc.html), rather than a filled pill —
 // it's a plain nav destination there, not also a CTA the way Register is.
 // `active` is optional because not every page with this nav is one of its
-// four destinations — Contact.dc.html's own nav has no active item at
-// all (Contact isn't a top-nav link, only a footer one), so omitting it
-// leaves every link in its plain, inactive state, matching that design.
-// "How it works" now links to its own real page (`/how-it-works`), not
-// the landing page's `/#how` teaser anchor — that was a deliberate
-// stand-in while the dedicated page didn't exist yet (see DECISIONS.md),
-// corrected now that it does.
-export function SiteNav({ active }: { active?: "home" | "register" | "login" | "how" }) {
+// three destinations — Contact/Privacy/How It Works's own nav has no
+// active item at all, so omitting it leaves every link in its plain,
+// inactive state, matching those designs.
+//
+// "How it works" was removed entirely (design handoff, 2026-08-11,
+// "design_handoff_landing_ctas": "it is not a critical page; it should
+// not compete in persistent navigation"). It's still reachable — a link
+// at the end of the landing page's own #how section, and Contact's
+// sidebar note — just not from every page's nav anymore.
+export function SiteNav({ active }: { active?: "home" | "register" | "login" }) {
   return (
     <nav className={styles.nav}>
       <div className={styles.navInner}>
@@ -39,9 +41,6 @@ export function SiteNav({ active }: { active?: "home" | "register" | "login" | "
         <div className={styles.navLinks}>
           <Link href="/" className={active === "home" ? styles.navLinkActive : styles.navLink}>
             Home
-          </Link>
-          <Link href="/how-it-works" className={active === "how" ? styles.navLinkActive : styles.navLink}>
-            How it works
           </Link>
           <Link href="/login" className={active === "login" ? styles.navLinkActive : styles.navLink}>
             Sign in
