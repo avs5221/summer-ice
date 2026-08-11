@@ -1517,3 +1517,51 @@ the actual bug the padding change exists to prevent, not just "it
 looks fine." 420px mobile confirmed the new `.waysInRow`s collapse to a
 single column with the action left-aligned below the text, matching
 the README's responsive note. Zero console errors throughout.
+
+### 2026-08-11 — Landing hero: split layout → stacked, centered (design handoff follow-up)
+
+Michael reported "a small error on the homepage" and attached a second
+handoff zip (`Summer ice hockey landing page(1).zip`, same
+`design_handoff_landing_ctas` bundle, README dated after the previous
+sync). The README's own §4a says it plainly: "The layout one was
+missed in the last pass — the shipped hero is still the split layout;
+it should be stacked." The earlier pass (previous commit, `adb0c9e`)
+correctly tightened the split layout's padding per the README's §3
+table but never implemented the actual layout change §4a called for —
+an oversight in that pass, not a new design decision.
+
+Fixed to match §4a exactly: `.heroInner` goes from a two-column grid
+(`1fr auto`, logo right) to a single centered flex column (`max-width:
+760px`, `flex-direction: column`, `align-items: center`, `text-align:
+center`, `gap: 16px`), with the logo now first in reading order at a
+fixed 92×92 (was `clamp(96px, 11vw, 140px)` in the right-hand column).
+The title drops its forced `<br />` — "Ice hockey, all summer." is one
+string now, sized up slightly (`clamp(34px, 5.4vw, 58px)`, was
+`clamp(34px, 4.8vw, 54px)`) to compensate for the narrower column. The
+child elements' individual `margin-bottom`s are gone in favor of the
+flex `gap` — but only inside the hero: `.eyebrow` is shared with three
+other section heads (schedule/how/rink) that still need their own
+`margin-bottom: 14px`, so the reset is scoped as `.heroInner .eyebrow`
+rather than changed on the shared class. The old `@media (max-width:
+720px)` block that existed solely to center the split grid on mobile
+is deleted outright — the new layout is centered at every width, so
+the media query has nothing left to do; `.heroLive`/`.heroActions`
+get `justify-content: center` unconditionally instead.
+
+Verified against a **freshly started** dev server, not the one already
+listening on :3000 — that process turned out to be a stale leftover
+from the prior day's session (started 2026-08-10, well before this
+commit's edits) that was serving pre-redesign wave-1 fake-data HTML
+despite Turbopack's file watching normally picking up saves; rather
+than chase why, it and its sibling on :3001 were killed and a clean
+`next dev` confirmed the fix. Computed styles pulled directly via
+Playwright's `getComputedStyle` (not eyeballed from a screenshot alone)
+confirmed `display: flex`, `flex-direction: column`, `max-width:
+760px`, the single-line title with no `<br>`, and a 92×92 logo.
+Screenshotted light, dark, and 390px mobile — all match the handoff's
+mockup — plus a full-page shot confirming the rest of the page
+(schedule, ways-in, CTA band) is unaffected, and a `/register` check
+confirming the ordinary route/nav still renders with zero console
+errors. `tsc --noEmit` and `eslint` both clean. The handoff zip
+(`apps/web/Summer ice hockey landing page(1).zip`) was, again, not
+committed.

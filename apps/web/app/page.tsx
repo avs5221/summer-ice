@@ -60,31 +60,28 @@ export default async function Home() {
 
       <div id="top" className={styles.hero}>
         <div className={styles.heroInner}>
-          <div>
-            <div className={styles.eyebrow}>Leiden · {SEASON.name.replace("Summer Season", "season")}</div>
-            <h1 className={styles.heroTitle}>
-              Ice hockey,
-              <br />
-              all summer.
-            </h1>
-            <p className={styles.heroDesc}>
-              Weekly ice at IJshal De Vliet in Leiden, from the end of March to the end of August. Take a slot
-              for the season and it&rsquo;s yours every week.
-            </p>
-            <div className={styles.heroLive}>
-              <span className={styles.liveDot} />
-              <span className={styles.liveText}>
-                <strong>{openSlots}</strong> of <strong>{slotFill.length}</strong>{" "}
-                {slotFill.length === 1 ? "slot" : "slots"} still have room for the season
-              </span>
-            </div>
-            <div className={styles.heroActions}>
-              <Link href="/register" className={styles.btnPrimary}>
-                Sign me up →
-              </Link>
-            </div>
+          {/* Stacked, centered column — logo leads, everything else
+              follows in reading order (design handoff, 2026-08-11 §4a).
+              No wrapper div: .heroInner is the flex column now. */}
+          <Image src="/logo-circle.png" alt="" width={92} height={92} className={styles.heroLogo} priority />
+          <div className={styles.eyebrow}>Leiden · {SEASON.name.replace("Summer Season", "season")}</div>
+          <h1 className={styles.heroTitle}>Ice hockey, all summer.</h1>
+          <p className={styles.heroDesc}>
+            Weekly ice at IJshal De Vliet in Leiden, from the end of March to the end of August. Take a slot for
+            the season and it&rsquo;s yours every week.
+          </p>
+          <div className={styles.heroLive}>
+            <span className={styles.liveDot} />
+            <span className={styles.liveText}>
+              <strong>{openSlots}</strong> of <strong>{slotFill.length}</strong>{" "}
+              {slotFill.length === 1 ? "slot" : "slots"} still have room for the season
+            </span>
           </div>
-          <Image src="/logo-circle.png" alt="" width={140} height={140} className={styles.heroLogo} priority />
+          <div className={styles.heroActions}>
+            <Link href="/register" className={styles.btnPrimary}>
+              Sign me up →
+            </Link>
+          </div>
         </div>
       </div>
 
