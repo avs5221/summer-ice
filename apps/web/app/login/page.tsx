@@ -50,7 +50,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <ThemeToggle variant="floating" />
+      <ThemeToggle />
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>

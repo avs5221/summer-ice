@@ -1255,3 +1255,54 @@ resolve to `/how-it-works`, and — the actual regression risk this pass
 carried — Privacy re-screenshotted post-refactor (scroll-spy still
 correct, section numeral still 24px, dark mode intact). Zero console
 errors throughout.
+
+### 2026-08-11 — Theme toggle unified to one placement, per direct product feedback
+
+Michael: "The light/dark toggle should not be pinned to the footer, it
+should live in the bottom right corner of the page and scroll with the
+page." Reconciled the two placements the source design used
+inconsistently across its own files — a small bordered icon embedded in
+the footer's link row (landing, and, until this pass, Contact/Privacy/
+How It Works via `SiteFooter`'s `themeToggle` prop) versus a
+`position: fixed` viewport-pinned button (Login, and the "floating"
+`variant` the other pages opted into) — into a single approach: `.page`
+is now `position: relative`, and `ThemeToggle` is `position: absolute;
+right: 24px; bottom: 24px` against it. Anchoring to the page's own box
+rather than the viewport is what makes it scroll away with the content
+instead of staying pinned on screen, and living outside `SiteFooter`
+entirely (rather than as one of its flex children) is what makes it not
+"pinned to the footer" — the two requirements are actually the same
+underlying fix, not two separate ones.
+
+**`variant` and the footer's `themeToggle` prop are gone, not just
+defaulted differently** — there is exactly one shape now, so a prop
+selecting between shapes would be dead surface. Every page (`/`,
+`/register`, `/login`, `/contact`, `/privacy`, `/how-it-works`) renders
+its own standalone `<ThemeToggle />` once, near the footer in JSX but
+not inside it.
+
+**Found a real click-blocking bug via testing, not by inspection:**
+register's fixed checkout bar (`.stickyBar`, `position: fixed`, the
+"Continue" button) occupies the same bottom-right corner the toggle
+defaults to. A plain visual screenshot wouldn't have caught this — it
+looked fine — but an actual Playwright click against the toggle timed
+out with `<div class="...stickyBar"> intercepts pointer events`,
+confirming the bar was silently swallowing the click rather than merely
+looking crowded. Measured the bar's real rendered height (`~83px`, via
+`boundingBox()`, not guessed) and added a targeted escape hatch —
+`ThemeToggle`'s new `offsetBottom` prop, used only by register-client.tsx
+(`100px` while the bar is showing, back to the shared default once
+`paid` removes it) — rather than raising the toggle's `z-index` above
+the bar's, which would have made it render on top of and potentially
+overlap the checkout content instead of sitting cleanly above it.
+
+**Verified:** `npx tsc --noEmit` (root) and `eslint` clean. Headless
+Chromium across all six pages: exactly one toggle per page (no
+leftover duplicates from the old footer/floating split), `getComputedStyle
+().position === "absolute"` on each (not `"fixed"`), and — the direct
+proof of "scrolls with the page" — the toggle's viewport-relative
+bounding box sits far below the 900px viewport when scrolled to the
+very top of each page, meaning it isn't visible until scrolled down to
+it, the opposite of a fixed element. Clicked and confirmed dark-mode
+toggled successfully on every page, including register post-fix (the
+same click that previously timed out). Zero console errors throughout.

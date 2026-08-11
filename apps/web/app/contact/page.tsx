@@ -71,9 +71,8 @@ export default function ContactPage() {
         </div>
       </div>
 
-      <ThemeToggle variant="floating" />
-
-      <SiteFooter themeToggle={false} />
+      <SiteFooter />
+      <ThemeToggle />
     </div>
   );
 }

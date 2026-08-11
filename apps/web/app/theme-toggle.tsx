@@ -1,29 +1,35 @@
 "use client";
 
-// Light/dark toggle from the "Summer Ice Landing" design. Two variants
-// across the design's own pages, both implemented rather than reconciled
-// to one: "inline" is a small bordered icon button sitting in a footer's
-// link row or a sticky bar (landing, register); "floating" is the
-// original fixed bottom-right button (login — that page's own revision
-// never got moved to the inline style the others did). Toggles the
-// `.dark` class on <html> — see globals.css's `@custom-variant dark`,
-// which makes every `dark:` Tailwind utility site-wide follow this class
-// rather than only `prefers-color-scheme`. The class itself is initialised
-// before paint by the inline script in layout.tsx, so this component only
-// ever reflects an already-correct state, never causes the flash it would
-// if it were the thing setting the class for the first time.
+// Light/dark toggle. Lives in the bottom-right corner of the page itself
+// (positioned against `.page`, which is `position: relative` — see
+// page.module.css) rather than pinned to the viewport or embedded in a
+// footer's link row: it scrolls away with the rest of the page instead of
+// staying fixed on screen, and isn't laid out as just another footer
+// link. One consistent placement across every page now — the two earlier
+// variants (a small bordered icon inside the footer's link row on some
+// pages, a viewport-fixed button on others, inherited from the source
+// design's own inconsistency across its files) were reconciled to this
+// single approach per direct product feedback rather than kept as-is.
+//
+// Toggles the `.dark` class on <html> — see globals.css's
+// `@custom-variant dark`, which makes every `dark:` Tailwind utility
+// site-wide follow this class rather than only `prefers-color-scheme`.
+// The class itself is initialised before paint by the inline script in
+// layout.tsx, so this component only ever reflects an already-correct
+// state, never causes the flash it would if it were the thing setting
+// the class for the first time.
+//
+// `offsetBottom` exists for exactly one caller: register-client.tsx,
+// whose fixed checkout bar sits over the same bottom-right corner this
+// button defaults to — confirmed by an actual click test, not assumed,
+// that the bar intercepts pointer events and makes the button
+// unreachable there without this. Every other page uses the default.
 import { useEffect, useState } from "react";
 import styles from "./page.module.css";
 
 const STORAGE_KEY = "si-theme";
 
-export function ThemeToggle({
-  size,
-  variant = "inline",
-}: {
-  size?: number;
-  variant?: "inline" | "floating";
-}) {
+export function ThemeToggle({ size = 44, offsetBottom }: { size?: number; offsetBottom?: number }) {
   // Null until mounted: matches whatever the inline script already put on
   // <html>, rather than guessing and risking a hydration mismatch.
   const [dark, setDark] = useState<boolean | null>(null);
@@ -55,7 +61,6 @@ export function ThemeToggle({
   }
 
   const isDark = dark ?? false;
-  const resolvedSize = size ?? (variant === "floating" ? 44 : 34);
 
   return (
     <button
@@ -63,8 +68,8 @@ export function ThemeToggle({
       onClick={toggle}
       title="Switch theme"
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      className={variant === "floating" ? styles.themeToggleFloating : styles.themeToggle}
-      style={{ width: resolvedSize, height: resolvedSize }}
+      className={styles.themeToggle}
+      style={{ width: size, height: size, ...(offsetBottom !== undefined ? { bottom: offsetBottom } : {}) }}
     >
       {isDark ? (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">

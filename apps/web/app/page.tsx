@@ -7,6 +7,7 @@ import { SEASON } from "~/lib/fake-data";
 import { LandingSlotRow } from "./landing-slot-row";
 import { SiteFooter } from "./site-footer";
 import { SiteNav } from "./site-nav";
+import { ThemeToggle } from "./theme-toggle";
 import styles from "./page.module.css";
 
 export const metadata: Metadata = {
@@ -225,6 +226,7 @@ export default async function Home() {
       </div>
 
       <SiteFooter />
+      <ThemeToggle />
     </div>
   );
 }

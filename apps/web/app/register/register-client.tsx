@@ -440,7 +440,6 @@ export function RegisterClient() {
               <div className={styles.stickySummary}>{summaryLine}</div>
             </div>
             <div className={styles.stickyRight}>
-              <ThemeToggle size={38} />
               <span className={styles.holdNote}>Held for {HOLD_MINUTES} minutes while you pay</span>
               {canContinue ? (
                 <button type="button" onClick={() => setPaid(true)} className={styles.continueBtn}>
@@ -463,6 +462,12 @@ export function RegisterClient() {
           </Link>
         </div>
       )}
+
+      {/* Clears the fixed checkout bar below while it's showing (confirmed
+          by an actual click test — the bar intercepts pointer events at
+          the default position); once paid, the bar is gone and the
+          toggle drops back to the same spot every other page uses. */}
+      <ThemeToggle offsetBottom={paid ? undefined : 100} />
     </div>
   );
 }

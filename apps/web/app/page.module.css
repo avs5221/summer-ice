@@ -7,6 +7,7 @@
  */
 
 .page {
+  position: relative;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -677,33 +678,18 @@
   gap: 18px;
 }
 
+/* Sits in the bottom-right corner of the page (`.page` is `position:
+ * relative` — see below), not the viewport: `position: absolute`, not
+ * `fixed`, so it scrolls away with the rest of the page rather than
+ * staying pinned on screen or living inside the footer's own layout. One
+ * placement for every page now, replacing the two the source design used
+ * inconsistently across its own files (footer-embedded on some,
+ * viewport-fixed on others) — see theme-toggle.tsx. */
 .themeToggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  flex-shrink: 0;
-  padding: 0;
-  border-radius: 999px;
-  border: 1.5px solid var(--border);
-  background: transparent;
-  color: var(--foreground);
-  cursor: pointer;
-}
-
-.themeToggle:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-/* The login page's own revision of this toggle — fixed bottom-right,
- * filled dark instead of a bordered outline. See theme-toggle.tsx. */
-.themeToggleFloating {
-  position: fixed;
+  position: absolute;
   right: 24px;
   bottom: 24px;
-  z-index: 60;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;

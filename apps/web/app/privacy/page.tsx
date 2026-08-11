@@ -173,9 +173,8 @@ export default function PrivacyPage() {
         </div>
       </div>
 
-      <ThemeToggle variant="floating" />
-
-      <SiteFooter themeToggle={false} />
+      <SiteFooter />
+      <ThemeToggle />
     </div>
   );
 }
