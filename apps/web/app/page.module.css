@@ -110,28 +110,42 @@
 }
 
 /* ─── Hero ─────────────────────────────────────────────────────────── */
+/* Rebuilt around two CTA cards (design_handoff_season_dropins, 2026-08-11)
+ * — this is the *fourth* hero shape this session (split → stacked-centered
+ * → this), reversing the stacked-centered pass from earlier the same day.
+ * See DECISIONS.md for the full chain; each pass matched its own handoff
+ * exactly at the time, this isn't churn for its own sake. The old
+ * `.heroLive`/`.heroActions`/single-CTA structure is gone: the live count
+ * and the CTA both move inside the season card below, and a second card
+ * carries the drop-in path that used to live in "Two more ways in" alone. */
 
 .hero {
   background: var(--sky-surface);
   border-bottom: 1px solid var(--sky-border);
 }
 
-/* Stacked, centered layout — the chosen default, not a variant (design
- * handoff, 2026-08-11, §4a: "the shipped hero is still the split layout;
- * it should be stacked" — the first pass of this same handoff missed
- * this and only tightened the split layout's padding). Logo leads a
- * single centered column; the old grid + its own <720px media query
- * (which existed to center that grid on mobile) are both gone, since
- * this layout is already centered at every width. */
 .heroInner {
-  max-width: 760px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 40px 28px 44px;
+  padding: 30px 28px 36px;
   display: flex;
   flex-direction: column;
+  gap: 26px;
+}
+
+.heroTop {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 32px;
   align-items: center;
-  text-align: center;
-  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .heroTop {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
 }
 
 .eyebrow {
@@ -143,34 +157,29 @@
   margin-bottom: 14px;
 }
 
-/* Hero reuses .eyebrow (also used by the schedule/how/rink section
- * heads, which still need their own margin-bottom) but the hero's own
- * flex `gap` on .heroInner supplies its spacing instead. */
-.heroInner .eyebrow {
-  margin-bottom: 0;
-}
-
 .heroTitle {
-  font-size: clamp(34px, 5.4vw, 58px);
+  font-size: clamp(32px, 4.4vw, 48px);
   font-weight: 800;
   letter-spacing: -0.035em;
   line-height: 1;
+  margin-bottom: 12px;
   text-wrap: balance;
 }
 
 .heroDesc {
   font-size: 15px;
-  line-height: 1.6;
-  max-width: 480px;
+  line-height: 1.55;
+  max-width: 520px;
   color: var(--muted-foreground);
 }
 
-.heroLive {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
+.heroLogo {
+  width: clamp(84px, 9vw, 116px);
+  height: clamp(84px, 9vw, 116px);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 5px var(--card),
+    0 8px 28px oklch(0 0 0 / 0.16);
 }
 
 .liveDot {
@@ -182,25 +191,143 @@
   animation: si-pulse 2.2s ease infinite;
 }
 
-.liveText {
-  font-size: 14px;
-  font-weight: 600;
-  opacity: 0.8;
+/* Two CTA cards: season commitment (neutral, `--foreground` filled CTA)
+ * and this-week drop-in (sun, in-season only). `order` swaps per
+ * seasonPhase so whichever path is live right now leads — see page.tsx. */
+.heroCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
 }
 
-.liveText strong {
-  font-feature-settings: "tnum" 1;
-  opacity: 1;
-}
-
-.heroActions {
+.heroCard {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-cd);
+  box-shadow: var(--shadow-cd-md);
+  padding: 20px 22px;
   display: flex;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.heroCardEyebrowRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.heroCardEyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.heroCardEyebrowSun {
+  composes: heroCardEyebrow;
+  color: var(--sun-text-on-lo);
+}
+
+.heroStatsRow {
+  display: flex;
+  gap: 38px;
+}
+
+.heroStatNum {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.heroStatLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
   margin-top: 6px;
 }
 
+.heroCardSub {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+
+.heroCardSub strong {
+  color: var(--foreground);
+  font-feature-settings: "tnum" 1;
+}
+
+.heroCardCta {
+  margin-top: auto;
+  display: block;
+  text-align: center;
+  background: var(--foreground);
+  color: var(--background);
+  padding: 13px 20px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.heroCardCtaSun {
+  composes: heroCardCta;
+  background: var(--sun);
+  color: oklch(0.15 0.06 75);
+}
+
+.heroCardCtaOutline {
+  composes: heroCardCta;
+  background: transparent;
+  border: 1.5px solid var(--border);
+}
+
+.heroCardCtaOutline:hover {
+  background: var(--bg-subtle);
+}
+
+.heroCardText {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Shared disabled "Continue with Google" button — see
+ * google-signin-button.tsx. Used by /login (full-width, via
+ * .googleBtnFullWidth there) and the drop-ins checkout modal. */
+.googleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.googleBtn:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+
+.googleBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* No longer used by the hero itself (its CTAs are the heroCard* buttons
+ * above) but kept — register-client.tsx's post-payment "Back to home"
+ * link and how-it-works's closing CTA row both still use it. */
 .btnPrimary {
   background: var(--foreground);
   color: var(--background);
@@ -209,15 +336,6 @@
   border: 0;
   font-weight: 700;
   font-size: 14px;
-}
-
-.heroLogo {
-  width: 92px;
-  height: 92px;
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 5px var(--card),
-    0 8px 28px oklch(0 0 0 / 0.16);
 }
 
 /* ─── Stat band ────────────────────────────────────────────────────── */
@@ -232,7 +350,7 @@
   margin: 0 auto;
   padding: 0 28px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
 }
 
 @media (max-width: 640px) {
@@ -307,161 +425,348 @@
   line-height: 1.6;
 }
 
-/* ─── Schedule table ───────────────────────────────────────────────── */
+/* ─── Schedule — pre-season simple list ──────────────────────────────
+ * seasonPhase() === "before" only (design_handoff_season_dropins). A
+ * plain link-row list, not the old button-per-row table it replaces —
+ * the whole row is the link, live season fill still comes from
+ * useLiveFill (see landing-slot-row.tsx), unchanged from before; only
+ * the visual shape changed. Not reachable with TODAY's fixed 10 Aug
+ * 2026 (always inside the season), so this is code-reviewed rather than
+ * screenshotted — see DECISIONS.md.
+ */
 
-.scheduleCard {
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-cd);
-  box-shadow: var(--shadow-cd-md);
-  overflow: hidden;
+.scheduleListHead {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
 }
 
-.scheduleHead {
-  display: grid;
-  grid-template-columns: 132px 1fr 196px 140px;
-  padding: 8px 24px;
-  background: var(--bg-subtle);
-  border-bottom: 1px solid var(--border);
-}
-
-.scheduleHeadCell {
-  font-size: 9px;
+.scheduleListEyebrow {
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.scheduleListDesc {
+  font-size: 13.5px;
   color: var(--muted-foreground);
 }
 
-.scheduleHeadCell.right {
-  text-align: right;
+.scheduleListLink {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
 }
 
-@media (max-width: 720px) {
-  .scheduleHead {
-    display: none;
-  }
-
-  .row {
-    grid-template-columns: 1fr !important;
-    gap: 10px;
-    padding: 16px 20px !important;
-  }
-
-  .cellAction {
-    text-align: left !important;
-  }
+.scheduleListCard {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-cd);
+  box-shadow: var(--shadow-cd);
+  overflow: hidden;
 }
 
-.row {
+.scheduleListRow {
   display: grid;
-  grid-template-columns: 132px 1fr 196px 140px;
+  grid-template-columns: 128px minmax(0, 1fr) auto;
+  gap: 16px;
   align-items: center;
-  padding: 0 24px;
-  min-height: 52px;
+  min-height: 47px;
+  padding: 0 18px;
   border-bottom: 1px solid var(--border);
+  color: inherit;
 }
 
-.row:last-child {
+.scheduleListRow:last-child,
+.scheduleListRowFull:last-child {
   border-bottom: none;
 }
 
-.rowFull {
+.scheduleListRow:hover {
+  background: var(--bg-subtle);
+}
+
+.scheduleListRowFull {
+  composes: scheduleListRow;
   background-image: repeating-linear-gradient(-45deg, transparent 0 8px, var(--border) 8px 9px);
 }
 
-.rowFull .cellDay,
-.rowFull .cellLevel {
-  opacity: 0.5;
+.scheduleListDayTime {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
-.dayLabel {
-  font-size: 10px;
+.scheduleListDay {
+  font-size: 13.5px;
   font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-  margin-bottom: 2px;
 }
 
-.timeValue {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.015em;
+.scheduleListTime {
+  font-family: var(--font-mono);
   font-feature-settings: "tnum" 1;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--muted-foreground);
 }
 
-.levelName {
-  font-size: 14px;
+.scheduleListLevel {
+  font-size: 13.5px;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.cellCounts {
+.scheduleListLabel {
+  font-feature-settings: "tnum" 1;
   font-size: 13px;
-  font-weight: 600;
-  font-feature-settings: "tnum" 1;
-  color: var(--muted-foreground);
-  line-height: 1.55;
-}
-
-.cellCounts strong {
   font-weight: 700;
-}
-
-.skCount strong {
-  color: var(--foreground);
-}
-
-.glCount strong {
-  color: var(--green);
-}
-
-.glCountRed strong {
-  color: var(--destructive);
+  white-space: nowrap;
 }
 
 .fullBadge {
   display: inline-block;
-  padding: 4px 10px;
+  padding: 3px 9px;
   border-radius: 999px;
   background: oklch(0.577 0.245 27.325 / 0.1);
   color: var(--destructive);
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+@media (max-width: 560px) {
+  .scheduleListRow {
+    grid-template-columns: 92px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 0 14px;
+  }
+}
+
+/* ─── Schedule — in-season week calendar ─────────────────────────────
+ * seasonPhase() === "during" (the phase TODAY's fixed date always
+ * resolves to). Six weekday columns, read-only — cards link out to
+ * /drop-ins rather than claiming inline, since the interaction lives
+ * there. Card counts are session-level (sessionDetail(), decline-freed
+ * spots included), not the season-level useLiveFill the pre-season list
+ * above uses — those are genuinely different numbers (this week's
+ * attendance vs. season registration), and only the latter has a live
+ * broadcast wired up yet. See DOMAIN-MODEL.md §9.
+ */
+
+.weekHead {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.weekHeadEyebrowRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.weekHeadDot {
+  composes: liveDot;
+  width: 7px;
+  height: 7px;
+}
+
+.weekHeadEyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sun-text-on-lo);
+}
+
+.weekHeadTitle {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.weekHeadLink {
+  margin-left: auto;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  font-feature-settings: "tnum" 1;
-}
-
-.cellAction {
-  text-align: right;
-}
-
-.claimBtn {
-  display: inline-block;
-  background: transparent;
   color: var(--primary);
-  border: 1.5px solid var(--primary);
-  padding: 7px 16px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 12px;
   white-space: nowrap;
 }
 
-.claimBtn:hover {
-  background: var(--primary);
-  color: var(--primary-foreground);
+/* Scrolls horizontally rather than squeezing six columns illegibly
+ * narrow — the source design doesn't specify a mobile treatment for
+ * this grid at all, so this is this repo's own call, consistent with
+ * how wide tables elsewhere in the app (register's schedule) handle
+ * overflow. */
+.weekGridScroll {
+  overflow-x: auto;
 }
 
-.waitlistBtn {
-  display: inline-block;
-  background: transparent;
-  color: var(--foreground);
-  padding: 7px 16px;
-  border-radius: 8px;
-  border: 1.5px solid var(--border);
+.weekGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-width: 780px;
+}
+
+.weekCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.weekColHead {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  height: 27px;
+  white-space: nowrap;
+  padding: 0 2px 8px;
+  border-bottom: 2px solid var(--border);
+}
+
+.weekColHeadToday {
+  composes: weekColHead;
+  border-bottom-color: var(--sun);
+}
+
+.weekColLabel {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.weekColLabelToday {
+  composes: weekColLabel;
+  color: var(--sun-text-on-lo);
+}
+
+.weekColDate {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
+  font-size: 12.5px;
   font-weight: 700;
-  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.weekCard {
+  display: flex;
+  flex-direction: column;
+  height: 152px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: inset 3px 0 0 var(--sun-border), var(--shadow-cd-sm);
+  padding: 12px 12px 13px;
+  color: inherit;
+}
+
+.weekCard:hover {
+  border-color: var(--sun);
+  transform: translateY(-1px);
+}
+
+.weekCardToday {
+  composes: weekCard;
+  background: var(--sun-lo);
+  border-color: var(--sun-border);
+  box-shadow: inset 3px 0 0 var(--sun), var(--shadow-cd-sm);
+}
+
+.weekCardTonight {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sun-text-on-lo);
+  margin-bottom: 7px;
+}
+
+.weekCardTime {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.weekCardLevel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  margin-top: 5px;
+  line-height: 1.35;
+}
+
+.weekCardFooter {
+  margin-top: auto;
+  padding-top: 9px;
+  border-top: 1px solid var(--sun-border);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.weekCardStat {
+  font-size: 11.5px;
+  font-weight: 800;
+  font-feature-settings: "tnum" 1;
+}
+
+.weekEmpty {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  height: 152px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+  background-image: repeating-linear-gradient(-45deg, transparent 0 8px, var(--border) 8px 9px);
+}
+
+.weekEmptyText {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  opacity: 0.75;
+}
+
+.weekFooterRow {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.weekFooterText {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.weekFooterCta {
+  margin-left: auto;
+  background: var(--sun);
+  color: oklch(0.15 0.06 75);
+  padding: 11px 22px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 13.5px;
   white-space: nowrap;
 }
 
@@ -739,8 +1044,10 @@
 
 /* ─── Footer ───────────────────────────────────────────────────────── */
 
+/* No longer `margin-top: auto` — .themeToggleTrack owns that job now, so
+ * that it (not the footer) is what absorbs the leftover vertical space
+ * on a short page and settles just above the footer. */
 .footer {
-  margin-top: auto;
   border-top: 1px solid var(--border);
   background: var(--card);
 }
@@ -748,11 +1055,11 @@
 .footerInner {
   max-width: 1080px;
   margin: 0 auto;
-  /* Bottom padding is 76px, not 34px: 24px inset + the 44px fixed
-   * ThemeToggle + 8px clearance, so it doesn't sit over "Privacy" and
-   * make it unclickable — the same class of bug register's checkout bar
-   * had, this time the toggle causing it instead of being the victim. */
-  padding: 22px 28px 76px;
+  /* Back to 26px (design_handoff_season_dropins, 2026-08-11) — the
+   * previous 76px existed only to clear a viewport-fixed toggle that no
+   * longer exists; the sticky-track approach below can't overlap the
+   * footer by construction, so the clearance hack is gone with it. */
+  padding: 22px 28px 26px;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -782,14 +1089,27 @@
   gap: 18px;
 }
 
-/* Fixed to the viewport corner, not the page: stays on screen as the
- * page scrolls. One placement for every page — see theme-toggle.tsx for
- * the two earlier variants this replaced, in two rounds. */
-.themeToggle {
-  position: fixed;
-  right: 24px;
+/* The sticky "track": a full-width flex child, rendered immediately
+ * before <SiteFooter/>, that carries the `margin-top: auto` + `position:
+ * sticky; bottom: 24px` combination described in theme-toggle.tsx's own
+ * comment. `pointer-events: none` here (re-enabled on the button itself)
+ * so the empty two-thirds of this full-width row never blocks clicks on
+ * whatever's underneath it while scrolling. */
+.themeToggleTrack {
+  margin-top: auto;
+  margin-bottom: 20px;
+  position: sticky;
   bottom: 24px;
+  height: 44px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 24px;
+  pointer-events: none;
   z-index: 60;
+}
+
+.themeToggle {
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;

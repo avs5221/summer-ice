@@ -167,8 +167,9 @@ export default function HowItWorksPage() {
             </div>
             <p className={styles.sectionDesc}>
               Two of the ten slots are skills training rather than scrimmage: drills for skaters and goalies, run
-              with goalie coaches and volunteer shooters. It is registered for like any other slot, and it has its
-              own capacity and season price.
+              with goalie coaches and volunteer shooters. It is registered for like any other slot, and it is
+              priced on its own: €450 for the season as a skater, €600 as a goalie. The Wednesday session is
+              skaters only — goalies play the Saturday one.
             </p>
           </section>
 
@@ -195,8 +196,8 @@ export default function HowItWorksPage() {
         </div>
       </div>
 
-      <SiteFooter />
       <ThemeToggle />
+      <SiteFooter />
     </div>
   );
 }

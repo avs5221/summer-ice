@@ -72,8 +72,8 @@ export default function ContactPage() {
         </div>
       </div>
 
-      <SiteFooter />
       <ThemeToggle />
+      <SiteFooter />
     </div>
   );
 }

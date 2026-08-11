@@ -1,24 +1,40 @@
 "use client";
 
-// Restyled from the "Summer Ice Landing" Claude Design project's
-// Register.dc.html — see docs/DECISIONS.md for the full account. The
-// underlying model (fake-data-backed availability, holds with a real
-// countdown, waitlisting with a queue position, the "simulate another
-// player" contention demo) is this repo's own wave-1 logic, carried over
-// and restyled rather than rebuilt — the design's own JS used a static
-// seed array with no live depletion, which would have thrown away the one
-// thing this page exists to demonstrate.
+// Register — restyled from the "Summer Ice Landing" Claude Design
+// project's design_handoff_season_dropins bundle (Register.dc.html) into
+// the same six-column week-grid language as /drop-ins (see
+// register.module.css's own comment on why it's a page-scoped copy, not
+// a shared component, despite the resemblance). The underlying model —
+// fake-data-backed availability, real holds with a countdown, the
+// "simulate another player" contention demo — is this repo's own wave-1
+// logic, carried over and restyled rather than rebuilt, exactly as the
+// previous pass of this page established.
+//
+// Real behaviour change from the previous version, not just a restyle:
+// "I play as a Skater/Goalie/Both" is gone. The new design has no global
+// role — every card always shows whichever role rows have capacity
+// (skater, and goalie unless the slot is skaters-only), and you pick a
+// role per night by clicking its row, one role per slot, replaceable.
+// "I play" is now a pure filter (hides rows/cards with no room for that
+// role), not a registration setting. Waitlisting also changes shape: the
+// old basket could hold a "waitlisted" line for a full slot; the new
+// model keeps reserves entirely separate from the payable basket — a
+// boolean per full slot, contributing nothing to the total — matching
+// Register.dc.html's own state (`picks` vs `reserves`) exactly.
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   type Position,
   type Slot,
+  LEVEL_FILTERS,
   SLOTS,
   WAITLISTS,
   formatEuros,
   formatTime,
   seasonFill,
+  slotMatchesLevelFilter,
 } from "~/lib/fake-data";
+import { SiteFooter } from "../site-footer";
 import { SiteNav } from "../site-nav";
 import { ThemeToggle } from "../theme-toggle";
 import shared from "../page.module.css";
@@ -28,23 +44,40 @@ const HOLD_MINUTES = 10;
 const SIMULATED_SLOT_ID = "fri-2130";
 const SIMULATED_POSITION: Position = "skater";
 
-type Play = Position | "both";
+type RoleFilter = "any" | Position;
 
 interface BasketLine {
   position: Position;
-  kind: "held" | "waitlisted";
-  holdExpiresAt: number | null; // ms epoch; null for waitlisted lines
   priceCents: number;
+  holdExpiresAt: number; // ms epoch
 }
+
+const WEEK_COLUMNS: { weekday: number; label: string }[] = [
+  { weekday: 2, label: "Tue" },
+  { weekday: 3, label: "Wed" },
+  { weekday: 4, label: "Thu" },
+  { weekday: 5, label: "Fri" },
+  { weekday: 6, label: "Sat" },
+  { weekday: 0, label: "Sun" },
+];
 
 function extraKey(slotId: string, position: Position): string {
   return `${slotId}:${position}`;
 }
 
+function pluralize(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function waitlistQueuePosition(slotId: string, position: Position): number {
+  return (WAITLISTS[slotId]?.filter((w) => w.position === position).length ?? 0) + 1;
+}
+
 export function RegisterClient() {
-  const [play, setPlay] = useState<Play>("skater");
-  const [perSlotRole, setPerSlotRole] = useState<Record<string, Position>>({});
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("any");
+  const [levelFilter, setLevelFilter] = useState<string | null>(null);
   const [basket, setBasket] = useState<Record<string, BasketLine>>({});
+  const [reserves, setReserves] = useState<Record<string, boolean>>({});
   const [simulatedExtra, setSimulatedExtra] = useState<Record<string, number>>({});
   const [paid, setPaid] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -57,15 +90,10 @@ export function RegisterClient() {
     return () => clearInterval(id);
   }, []);
 
-  // Lapsed holds fall out of the basket here, derived at render time
-  // rather than by mutating state on every tick — re-adding after expiry
-  // is just clicking "Add" again, so there's nothing to preserve.
   const liveBasket = useMemo(() => {
     const next: Record<string, BasketLine> = {};
     for (const [slotId, line] of Object.entries(basket)) {
-      if (line.kind !== "held" || paid || (line.holdExpiresAt !== null && line.holdExpiresAt > now)) {
-        next[slotId] = line;
-      }
+      if (paid || line.holdExpiresAt > now) next[slotId] = line;
     }
     return next;
   }, [basket, paid, now]);
@@ -83,7 +111,7 @@ export function RegisterClient() {
 
   function taken(slotId: string, position: Position): number {
     const line = liveBasket[slotId];
-    const mine = line && line.kind === "held" && line.position === position ? 1 : 0;
+    const mine = line && line.position === position ? 1 : 0;
     return takenByOthers(slotId, position) + mine;
   }
 
@@ -95,33 +123,23 @@ export function RegisterClient() {
     return Math.max(0, slot.capacity[position] - takenByOthers(slot.id, position));
   }
 
-  function roleFor(slot: Slot): Position {
-    if (play !== "both") return play;
-    const override = perSlotRole[slot.id];
-    if (override) return override;
-    return available(slot, "skater") > 0 ? "skater" : "goalie";
-  }
-
-  function setRole(slotId: string, position: Position) {
-    setPerSlotRole((o) => ({ ...o, [slotId]: position }));
-  }
-
-  function addToBasket(slot: Slot, position: Position) {
-    const room = available(slot, position);
-    const line: BasketLine =
-      room > 0
-        ? {
-            position,
-            kind: "held",
-            // react-hooks/purity flags any Date.now() call textually inside
-            // a component's source, even here where it only ever runs
-            // inside this onClick-triggered function — never during render.
-            // eslint-disable-next-line react-hooks/purity
-            holdExpiresAt: Date.now() + HOLD_MINUTES * 60 * 1000,
-            priceCents: slot.price[position].seasonCents,
-          }
-        : { position, kind: "waitlisted", holdExpiresAt: null, priceCents: 0 };
-    setBasket((b) => ({ ...b, [slot.id]: line }));
+  function togglePick(slot: Slot, position: Position) {
+    setBasket((b) => {
+      const existing = b[slot.id];
+      if (existing && existing.position === position) {
+        const next = { ...b };
+        delete next[slot.id];
+        return next;
+      }
+      return {
+        ...b,
+        [slot.id]: {
+          position,
+          priceCents: slot.price[position].seasonCents,
+          holdExpiresAt: Date.now() + HOLD_MINUTES * 60 * 1000,
+        },
+      };
+    });
   }
 
   function removeFromBasket(slotId: string) {
@@ -132,6 +150,10 @@ export function RegisterClient() {
     });
   }
 
+  function toggleReserves(slotId: string) {
+    setReserves((r) => ({ ...r, [slotId]: !r[slotId] }));
+  }
+
   function simulateOtherPlayer() {
     const slot = SLOTS.find((s) => s.id === SIMULATED_SLOT_ID)!;
     if (roomForOthers(slot, SIMULATED_POSITION) <= 0) return;
@@ -139,71 +161,88 @@ export function RegisterClient() {
     setSimulatedExtra((extra) => ({ ...extra, [k]: (extra[k] ?? 0) + 1 }));
   }
 
-  function waitlistQueuePosition(slotId: string, position: Position): number {
-    return (WAITLISTS[slotId]?.filter((w) => w.position === position).length ?? 0) + 1;
+  function matchesFilters(slot: Slot): boolean {
+    if (levelFilter && !slotMatchesLevelFilter(slot, levelFilter)) return false;
+    if (roleFilter === "skater" && available(slot, "skater") <= 0) return false;
+    if (roleFilter === "goalie" && (slot.capacity.goalie === 0 || available(slot, "goalie") <= 0)) return false;
+    return true;
   }
 
-  const heldLines = Object.entries(liveBasket).filter(([, l]) => l.kind === "held");
-  const waitlistedLines = Object.entries(liveBasket).filter(([, l]) => l.kind === "waitlisted");
-  const staleSlotIds = heldLines
+  const heldEntries = Object.entries(liveBasket);
+  const total = heldEntries.reduce((sum, [, l]) => sum + l.priceCents, 0);
+  const staleSlotIds = heldEntries
     .filter(([slotId, line]) => roomForOthers(SLOTS.find((s) => s.id === slotId)!, line.position) <= 0)
     .map(([slotId]) => slotId);
-  const total = heldLines.reduce((sum, [, l]) => sum + l.priceCents, 0);
-  const canContinue = heldLines.length > 0 && staleSlotIds.length === 0;
+  const canContinue = heldEntries.length > 0 && staleSlotIds.length === 0;
 
   const simulatedSlot = SLOTS.find((s) => s.id === SIMULATED_SLOT_ID)!;
   const simulatedRoom = roomForOthers(simulatedSlot, SIMULATED_POSITION);
 
-  const summaryLine =
-    staleSlotIds.length > 0
-      ? staleSlotIds.length === 1
-        ? "One slot needs fixing before you continue"
-        : `${staleSlotIds.length} slots need fixing before you continue`
-      : heldLines.length > 0
-        ? heldLines
-            .map(([slotId]) => {
-              const slot = SLOTS.find((s) => s.id === slotId)!;
-              return `${slot.weekdayLabel} ${formatTime(slot.startTime)}`;
-            })
-            .join(" · ")
-        : "Add the nights you want to skate";
+  const openSkaters = SLOTS.reduce((sum, s) => sum + available(s, "skater"), 0);
+  const openGoalies = SLOTS.reduce((sum, s) => sum + (s.capacity.goalie > 0 ? available(s, "goalie") : 0), 0);
+
+  const filtersActive = roleFilter !== "any" || levelFilter !== null;
+
+  function pickShortLabel(slotId: string, position: Position): string {
+    const slot = SLOTS.find((s) => s.id === slotId)!;
+    return `${slot.weekdayLabel.slice(0, 3)} ${formatTime(slot.startTime)}${position === "goalie" ? " (goalie)" : ""}`;
+  }
+
+  const pickSummary = heldEntries.length === 0 ? "Tap a night to add it for the season" : heldEntries.map(([slotId, l]) => pickShortLabel(slotId, l.position)).join(" · ");
+  const pickCount = heldEntries.length === 0 ? "Nothing selected yet" : `${pluralize(heldEntries.length, "night")} selected`;
 
   return (
     <div className={shared.page}>
       <SiteNav active="register" />
 
-      <div className={styles.headerBand}>
-        <div className={styles.headerBandInner}>
-          <div className={shared.eyebrow}>2026 season</div>
-          <h1 className={styles.pageTitle}>Register</h1>
+      <div className={styles.header}>
+        <div className={styles.headerInner}>
+          <div>
+            <div className={styles.headerEyebrow}>2026 season · 30 Mar – 30 Aug</div>
+            <h1 className={styles.headerTitle}>Take a night for the season</h1>
+          </div>
+          <div className={styles.headerCounts}>
+            <div className={styles.headerCountsNum}>
+              {openSkaters} skater · {openGoalies} goalie
+            </div>
+            <div className={styles.headerCountsLabel}>Season spots left</div>
+          </div>
         </div>
       </div>
 
       <div className={styles.main}>
-        <div className={styles.sectionHead}>
-          <div className={shared.eyebrow}>The weekly slots</div>
-          <h2 className={styles.sectionTitle}>Add the nights you want to play.</h2>
-        </div>
+        <p className={styles.blurb}>
+          Ten nights run every week all summer. Take as many as you like — the spot is yours every week until 30
+          August, and you pay once. <strong>€300 a night for skaters, €150 for goalies.</strong> Skills training
+          is priced on its own: €450 skaters, €600 goalies — and Wednesday skills is skaters only.
+        </p>
 
-        <div className={styles.roleRow}>
-          <span className={styles.roleLabel}>I play as a</span>
-          <div className={styles.rolePills}>
-            {(["skater", "goalie", "both"] as const).map((option) => (
+        <div className={styles.filterRow}>
+          <span className={styles.filterLabel}>I play</span>
+          <div className={styles.roleGroup}>
+            {(["any", "skater", "goalie"] as const).map((r) => (
               <button
-                key={option}
+                key={r}
                 type="button"
-                onClick={() => setPlay(option)}
-                className={play === option ? styles.rolePillActive : styles.rolePill}
+                onClick={() => setRoleFilter(r)}
+                className={roleFilter === r ? styles.rolePillBtnActive : styles.rolePillBtnInactive}
               >
-                {option === "skater" ? "Skater" : option === "goalie" ? "Goalie" : "Both"}
+                {r === "any" ? "Any" : r === "skater" ? "Skater" : "Goalie"}
               </button>
             ))}
           </div>
-          <span className={styles.roleNote}>
-            {play === "both"
-              ? "Pick the position on each slot you add."
-              : `Availability and prices below are for ${play === "goalie" ? "goalies" : "skaters"}.`}
-          </span>
+          <div className={styles.levelGroup}>
+            {LEVEL_FILTERS.map((level) => (
+              <button
+                key={level}
+                type="button"
+                onClick={() => setLevelFilter((prev) => (prev === level ? null : level))}
+                className={levelFilter === level ? styles.levelPillBtnActive : styles.levelPillBtnInactive}
+              >
+                {level}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className={styles.demo}>
@@ -216,258 +255,174 @@ export function RegisterClient() {
           </button>
         </div>
 
-        <div className={styles.scheduleCard}>
-          <div className={styles.scheduleHead}>
-            <span className={styles.scheduleHeadCell}>Day / Start</span>
-            <span className={styles.scheduleHeadCell}>Level</span>
-            <span className={styles.scheduleHeadCell}>Availability</span>
-            <span className={`${styles.scheduleHeadCell} ${styles.right}`}>Season</span>
-            <span className={`${styles.scheduleHeadCell} ${styles.right}`}>Action</span>
-          </div>
+        <div className={styles.calendarScroll}>
+          <div className={styles.calendarPanel}>
+            {WEEK_COLUMNS.map((col) => {
+              const daySlots = SLOTS.filter((s) => s.weekday === col.weekday);
+              const visible = daySlots.filter(matchesFilters);
 
-          {SLOTS.map((slot) => {
-            const line = liveBasket[slot.id];
-            const skLeft = available(slot, "skater");
-            const glLeft = available(slot, "goalie");
-            const allFull = skLeft === 0 && glLeft === 0;
-            const waiting = WAITLISTS[slot.id]?.length ?? 0;
-
-            if (line) {
-              const isStale = staleSlotIds.includes(slot.id);
-              const role = line.position;
-
-              if (isStale) {
-                return (
-                  <div key={slot.id} className={styles.rowStale}>
-                    <div>
-                      <div className={styles.dayLabelStale}>{slot.weekdayLabel.slice(0, 3)}</div>
-                      <div className={styles.timeValue}>{formatTime(slot.startTime)}</div>
-                    </div>
-                    <div className={styles.levelName}>{slot.label}</div>
-                    <div className={styles.staleNote}>
-                      {role === "goalie" ? "No goalie spots left" : "No skater spots left"}
-                    </div>
-                    <div className={styles.cellPriceMuted}>—</div>
-                    <div className={styles.cellAction}>
-                      <button type="button" onClick={() => removeFromBasket(slot.id)} className={styles.removeBtnDestructive}>
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-
-              const showPicker = play === "both" && line.kind === "held";
               return (
-                <div key={slot.id} className={styles.rowChosen}>
-                  <div>
-                    <div className={styles.dayLabelActive}>{slot.weekdayLabel.slice(0, 3)}</div>
-                    <div className={styles.timeValue}>{formatTime(slot.startTime)}</div>
+                <div key={col.weekday} className={styles.dayCol}>
+                  <div className={styles.dayColHead}>
+                    <span className={styles.dayColLabel}>{col.label}</span>
+                    <span className={styles.dayColSub}>{visible.length === 1 ? "1 night" : `${visible.length} nights`}</span>
                   </div>
-                  <div>
-                    <div className={styles.levelName}>{slot.label}</div>
-                    {showPicker && (
-                      <div className={styles.roleChipRow}>
-                        {role === "skater" ? (
-                          <span className={styles.roleChipActive}>Skater</span>
-                        ) : skLeft > 0 ? (
-                          <button type="button" onClick={() => setRole(slot.id, "skater")} className={styles.roleChip}>
-                            Skater
-                          </button>
-                        ) : null}
-                        {role === "goalie" ? (
-                          <span className={styles.roleChipActive}>Goalie</span>
-                        ) : glLeft > 0 ? (
-                          <button type="button" onClick={() => setRole(slot.id, "goalie")} className={styles.roleChip}>
-                            Goalie
-                          </button>
-                        ) : (
-                          <span className={styles.roleChipDisabled}>Goalie · full</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {line.kind === "held" ? (
-                    <div className={styles.addedRow}>
-                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--primary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2.6 6.7 5.1 9.2 10.4 3.8" />
-                      </svg>
-                      <span>Added as {role}</span>
+
+                  {visible.length === 0 ? (
+                    <div className={styles.dayEmpty}>
+                      <span className={styles.dayEmptyText}>{filtersActive ? "Nothing matching" : "No ice"}</span>
                     </div>
                   ) : (
-                    <div className={styles.addedRowWaitlisted}>
-                      #{waitlistQueuePosition(slot.id, role)} in line
-                    </div>
+                    visible.map((slot) => {
+                      const line = liveBasket[slot.id];
+                      const stale = line !== undefined && staleSlotIds.includes(slot.id);
+
+                      if (stale) {
+                        return (
+                          <div key={slot.id} id={slot.id} className={styles.sessionCardFull} style={{ borderColor: "var(--destructive)" }}>
+                            <div className={styles.sessionTimeFull} style={{ opacity: 1 }}>
+                              {formatTime(slot.startTime)}
+                            </div>
+                            <div className={styles.sessionLevelFull} style={{ opacity: 1 }}>
+                              {slot.label}
+                            </div>
+                            <div className={styles.fullFooter}>
+                              <span className={styles.fullLabel}>No {line!.position} spots left</span>
+                              <button type="button" onClick={() => removeFromBasket(slot.id)} className={styles.reservesBtn}>
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      const skLeft = available(slot, "skater");
+                      const glLeft = slot.capacity.goalie > 0 ? available(slot, "goalie") : 0;
+                      const hasRoom = Boolean(line) || skLeft > 0 || glLeft > 0;
+
+                      if (!hasRoom) {
+                        const onReserves = reserves[slot.id] ?? false;
+                        const position = waitlistQueuePosition(slot.id, "skater");
+                        return (
+                          <div key={slot.id} id={slot.id} className={styles.sessionCardFull}>
+                            <div className={styles.sessionTimeFull}>{formatTime(slot.startTime)}</div>
+                            <div className={styles.sessionLevelFull}>{slot.label}</div>
+                            <div className={styles.fullFooter}>
+                              <span className={styles.fullLabel}>Full</span>
+                              <button
+                                type="button"
+                                onClick={() => toggleReserves(slot.id)}
+                                className={onReserves ? styles.reservesBtnActive : styles.reservesBtn}
+                              >
+                                {onReserves ? `${position}${position === 1 ? "st" : position === 2 ? "nd" : position === 3 ? "rd" : "th"} on the reserves ✓` : "Join the reserves"}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      const roleRow = (role: Position, left: number) => {
+                        const isPicked = line?.position === role;
+                        const label = role === "skater" ? "Skater" : "Goalie";
+                        const priceCents = slot.price[role].seasonCents;
+                        if (!isPicked && left <= 0) {
+                          return (
+                            <div key={role} className={styles.roleRowBlocked}>
+                              <span>{label}</span>
+                              <span className={styles.roleRowBlockedNote}>full</span>
+                            </div>
+                          );
+                        }
+                        const cls = isPicked ? styles.roleRowSelected : left >= 3 ? styles.roleRowGreen : styles.roleRowAmber;
+                        return (
+                          <button key={role} type="button" onClick={() => togglePick(slot, role)} className={cls}>
+                            <span className={styles.roleRowLabelStack}>
+                              <span className={styles.roleRowLabel}>{label}</span>
+                              <span className={styles.roleRowNote}>{isPicked ? "Added ✓" : `${left} left`}</span>
+                            </span>
+                            <span className={styles.roleRowPrice}>{formatEuros(priceCents)}</span>
+                          </button>
+                        );
+                      };
+
+                      return (
+                        <div key={slot.id} id={slot.id} className={line ? styles.sessionCardChosen : styles.sessionCard}>
+                          <div className={styles.sessionTime}>{formatTime(slot.startTime)}</div>
+                          <div className={styles.sessionLevel}>{slot.label}</div>
+                          {slot.capacity.goalie === 0 && <div className={styles.skatersOnly}>Skaters only</div>}
+                          <div className={styles.roleRowGroup}>
+                            {roleRow("skater", skLeft)}
+                            {slot.capacity.goalie > 0 && roleRow("goalie", glLeft)}
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
-                  <div className={styles.cellPrice}>
-                    {line.kind === "held" ? formatEuros(slot.price[role].seasonCents) : "Free"}
-                  </div>
-                  <div className={styles.cellAction}>
-                    {!paid && (
-                      <button type="button" onClick={() => removeFromBasket(slot.id)} className={styles.removeBtn}>
-                        Remove
-                      </button>
-                    )}
-                  </div>
                 </div>
               );
-            }
-
-            if (allFull) {
-              return (
-                <div key={slot.id} className={styles.rowBlocked}>
-                  <div style={{ opacity: 0.44 }}>
-                    <div className={styles.dayLabel}>{slot.weekdayLabel.slice(0, 3)}</div>
-                    <div className={styles.timeValue}>{formatTime(slot.startTime)}</div>
-                  </div>
-                  <div className={styles.levelName} style={{ opacity: 0.44 }}>
-                    {slot.label}
-                  </div>
-                  <div>
-                    <span className={styles.blockedBadge}>{waiting > 0 ? `Full · ${waiting} waiting` : "Full"}</span>
-                  </div>
-                  <div className={styles.cellPriceMuted}>{formatEuros(slot.price[roleFor(slot)].seasonCents)}</div>
-                  <div className={styles.cellAction}>
-                    <button type="button" onClick={() => addToBasket(slot, roleFor(slot))} className={styles.waitlistBtn}>
-                      Waitlist →
-                    </button>
-                  </div>
-                </div>
-              );
-            }
-
-            const role = roleFor(slot);
-            const mine = available(slot, role);
-            if (mine <= 0) {
-              // The role I'm currently set to play has no room, but the
-              // slot as a whole isn't full (the other position does).
-              return (
-                <div key={slot.id} className={styles.rowBlocked}>
-                  <div style={{ opacity: 0.5 }}>
-                    <div className={styles.dayLabel}>{slot.weekdayLabel.slice(0, 3)}</div>
-                    <div className={styles.timeValue}>{formatTime(slot.startTime)}</div>
-                  </div>
-                  <div className={styles.levelName} style={{ opacity: 0.5 }}>
-                    {slot.label}
-                  </div>
-                  <div>
-                    <span className={styles.blockedBadge}>Full</span>
-                  </div>
-                  <div className={styles.cellPriceMuted}>{formatEuros(slot.price[role].seasonCents)}</div>
-                  <div className={styles.cellAction}>
-                    <button type="button" onClick={() => addToBasket(slot, role)} className={styles.waitlistBtn}>
-                      Waitlist →
-                    </button>
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <div key={slot.id} className={styles.row}>
-                <div>
-                  <div className={styles.dayLabel}>{slot.weekdayLabel.slice(0, 3)}</div>
-                  <div className={styles.timeValue}>{formatTime(slot.startTime)}</div>
-                </div>
-                <div className={styles.levelName}>{slot.label}</div>
-                <div className={styles.cellAvailability}>
-                  <span
-                    className={styles.availabilityDot}
-                    style={{ background: mine <= 3 ? "var(--sun)" : "var(--green)" }}
-                  />
-                  <span className={styles.availabilityText}>
-                    {play === "both"
-                      ? `${skLeft} skater · ${glLeft} goalie`
-                      : `${mine} spot${mine === 1 ? "" : "s"} left`}
-                  </span>
-                </div>
-                <div className={styles.cellPrice}>{formatEuros(slot.price[role].seasonCents)}</div>
-                <div className={styles.cellAction}>
-                  <button type="button" onClick={() => addToBasket(slot, role)} className={styles.addBtn}>
-                    Add
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+            })}
+          </div>
         </div>
 
-        <p className={styles.footnote}>
-          Prices are per slot, for the whole season. Payment is by iDEAL or Wero — we never ask for card details.
-        </p>
-
-        {paid && (
+        {paid ? (
           <div className={styles.confirmedBanner}>
             <p className={styles.confirmedTitle}>You&rsquo;re confirmed.</p>
             <p className={styles.confirmedLine}>
-              Confirmed:{" "}
-              {heldLines.length === 0
-                ? "nothing"
-                : heldLines
-                    .map(([slotId, l]) => {
-                      const slot = SLOTS.find((s) => s.id === slotId)!;
-                      return `${slot.weekdayLabel} ${formatTime(slot.startTime)} (${l.position})`;
-                    })
-                    .join(", ")}
-              .
+              Confirmed: {heldEntries.length === 0 ? "nothing" : heldEntries.map(([slotId, l]) => pickShortLabel(slotId, l.position)).join(", ")}.
             </p>
-            {waitlistedLines.length > 0 && (
-              <p className={styles.confirmedLine}>
-                Still waitlisted:{" "}
-                {waitlistedLines
-                  .map(([slotId, l]) => {
-                    const slot = SLOTS.find((s) => s.id === slotId)!;
-                    return `${slot.weekdayLabel} ${formatTime(slot.startTime)} (${l.position}, #${waitlistQueuePosition(slotId, l.position)})`;
-                  })
-                  .join(", ")}
-                .
-              </p>
+          </div>
+        ) : (
+          <div className={styles.stickyBar}>
+            <div className={styles.stickyInfo}>
+              <div className={styles.stickyCount}>{pickCount}</div>
+              <div className={styles.stickySummary}>{pickSummary}</div>
+            </div>
+            {heldEntries.length > 0 && (
+              <button type="button" onClick={() => setBasket({})} className={styles.stickyClear}>
+                Clear
+              </button>
             )}
+            <div className={styles.stickyRight}>
+              <span className={styles.holdNote}>Held {HOLD_MINUTES} min while you pay</span>
+              <div className={styles.stickyTotalWrap}>
+                <div className={styles.stickyTotal} style={{ color: heldEntries.length === 0 ? "var(--muted-foreground)" : "var(--foreground)" }}>
+                  {heldEntries.length === 0 ? "—" : formatEuros(total)}
+                </div>
+                <div className={styles.stickyTotalLabel}>Season total</div>
+              </div>
+              <button
+                type="button"
+                disabled={!canContinue}
+                onClick={() => setPaid(true)}
+                className={canContinue ? styles.continueBtnActive : styles.continueBtnDisabled}
+              >
+                Hold &amp; continue →
+              </button>
+            </div>
+          </div>
+        )}
+
+        <p className={styles.footnote}>
+          Payment is iDEAL or Wero — we never ask for card details. Can&rsquo;t commit to a whole summer?{" "}
+          <Link href="/drop-ins">Drop in on an open night →</Link>
+        </p>
+
+        {paid && (
+          <div>
+            <Link href="/" className={shared.btnPrimary}>
+              Back to home
+            </Link>
           </div>
         )}
       </div>
 
-      {!paid && (
-        <div className={styles.stickyBar}>
-          <div className={styles.stickyInner}>
-            <div style={{ minWidth: 0 }}>
-              <div className={styles.stickyTotals}>
-                <span className={styles.stickyTotal}>{formatEuros(total)}</span>
-                <span className={styles.stickyCount}>
-                  {heldLines.length === 1 ? "1 slot" : `${heldLines.length} slots`}
-                </span>
-              </div>
-              <div className={styles.stickySummary}>{summaryLine}</div>
-            </div>
-            <div className={styles.stickyRight}>
-              <span className={styles.holdNote}>Held for {HOLD_MINUTES} minutes while you pay</span>
-              {canContinue ? (
-                <button type="button" onClick={() => setPaid(true)} className={styles.continueBtn}>
-                  Hold &amp; continue →
-                </button>
-              ) : (
-                <button type="button" disabled className={styles.continueBtnDisabled}>
-                  Continue →
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {paid && (
-        <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 28px 40px" }}>
-          <Link href="/" className={shared.btnPrimary}>
-            Back to home
-          </Link>
-        </div>
-      )}
-
-      {/* Clears the fixed checkout bar below while it's showing (confirmed
-          by an actual click test — the bar intercepts pointer events at
-          the default position); once paid, the bar is gone and the
-          toggle drops back to the same spot every other page uses. */}
-      <ThemeToggle offsetBottom={paid ? undefined : 100} />
+      {/* Gains a real footer here for the first time — the previous
+          version of this page had none at all; Register.dc.html's own
+          markup includes the standard Schedule/Contact/Privacy one every
+          other page already has, closing what reads like a gap rather
+          than a deliberate omission. */}
+      <ThemeToggle />
+      <SiteFooter />
     </div>
   );
 }

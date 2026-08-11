@@ -19,15 +19,21 @@
 // That's a broken-looking result, not a graceful future-proofed one, so
 // disabled-with-an-honest-reason beats live-but-breaks until the
 // provider is actually configured.
-import styles from "./login.module.css";
+//
+// Promoted here from login/google-signin-button.tsx (design_handoff_
+// season_dropins, 2026-08-11) once the drop-ins checkout modal became a
+// second real use of the identical disabled button — same markup, same
+// reasoning, so a shared `.googleBtn` (page.module.css) beats a second
+// copy. Callers needing different sizing pass `className` to extend it.
+import styles from "./page.module.css";
 
-export function GoogleSignInButton() {
+export function GoogleSignInButton({ className }: { className?: string }) {
   return (
     <button
       type="button"
       disabled
       title="Google sign-in isn't set up yet — use email and password below."
-      className={styles.googleBtn}
+      className={className ? `${styles.googleBtn} ${className}` : styles.googleBtn}
     >
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <path

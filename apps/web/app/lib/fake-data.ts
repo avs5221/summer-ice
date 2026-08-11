@@ -4,9 +4,13 @@
 // seeded from here; refreshing the page throws it away, per the brief.
 //
 // Slots, capacities and prices are the real 2026 schedule from
-// docs/DOMAIN-MODEL.md §1. Skills Training capacity is D12 in that doc — open,
-// pending Cas — so 16 skaters / 4 goalies below is an invented placeholder,
-// not a real number.
+// docs/DOMAIN-MODEL.md §1. Skills Training capacity is D12 in that doc —
+// partially resolved 2026-08-11: Wednesday's Skills Training slot is
+// skaters-only (goalie capacity 0, decided), Saturday's keeps both
+// positions at 16 skaters / 4 goalies, which remains an invented
+// placeholder, not a number Cas has confirmed. Skills Training goalie
+// pricing is €600 (D3, revised 2026-08-11) — no longer the same rate as
+// skater's €450.
 
 export type Position = "skater" | "goalie";
 export type SessionType = "scrimmage" | "skills_training";
@@ -39,16 +43,31 @@ export const SEASON = {
   weekCount: 22,
 };
 
+// Home page's `seasonPhase` prop (design_handoff_season_dropins): "auto"
+// compares TODAY against the season bounds above. TODAY (10 Aug 2026) sits
+// inside the season, so this always resolves to "during" for this demo —
+// the "before" branch still exists in the components below for whenever
+// TODAY moves, not dead code kept only for symmetry.
+export function seasonPhase(): "before" | "during" {
+  return TODAY < SEASON_START ? "before" : "during";
+}
+
 const SCRIMMAGE_CAPACITY: Record<Position, number> = { skater: 20, goalie: 2 };
 const SKILLS_CAPACITY: Record<Position, number> = { skater: 16, goalie: 4 };
+// Wednesday Skills Training only — see D12: decided skaters-only, not a
+// placeholder like the 16/4 above.
+const SKILLS_CAPACITY_SKATERS_ONLY: Record<Position, number> = { skater: 16, goalie: 0 };
 
 const SCRIMMAGE_PRICE: Record<Position, { seasonCents: number; extrasCents: number }> = {
   skater: { seasonCents: 30000, extrasCents: 1500 },
   goalie: { seasonCents: 15000, extrasCents: 0 },
 };
+// Goalie skills-training price is €600, not €450 — deliberately not the
+// same rate as skater's, unlike regular scrimmage's clean half/full-price
+// relationship. See D3.
 const SKILLS_PRICE: Record<Position, { seasonCents: number; extrasCents: number }> = {
   skater: { seasonCents: 45000, extrasCents: 1500 },
-  goalie: { seasonCents: 45000, extrasCents: 0 },
+  goalie: { seasonCents: 60000, extrasCents: 0 },
 };
 
 function slot(
@@ -60,6 +79,7 @@ function slot(
   label: string,
   levels: string[],
   sessionType: SessionType,
+  capacityOverride?: Record<Position, number>,
 ): Slot {
   return {
     id,
@@ -70,7 +90,7 @@ function slot(
     label,
     levels,
     sessionType,
-    capacity: sessionType === "scrimmage" ? SCRIMMAGE_CAPACITY : SKILLS_CAPACITY,
+    capacity: capacityOverride ?? (sessionType === "scrimmage" ? SCRIMMAGE_CAPACITY : SKILLS_CAPACITY),
     price: sessionType === "scrimmage" ? SCRIMMAGE_PRICE : SKILLS_PRICE,
   };
 }
@@ -79,7 +99,17 @@ function slot(
 // lists it. Never re-sorted by fill, level or anything else.
 export const SLOTS: Slot[] = [
   slot("tue-2130", 2, "Tuesday", [21, 30], [22, 30], "5th/6th Division", ["5th", "6th"], "scrimmage"),
-  slot("wed-2015", 3, "Wednesday", [20, 15], [21, 15], "Skills Training", [], "skills_training"),
+  slot(
+    "wed-2015",
+    3,
+    "Wednesday",
+    [20, 15],
+    [21, 15],
+    "Skills Training",
+    [],
+    "skills_training",
+    SKILLS_CAPACITY_SKATERS_ONLY,
+  ),
   slot("wed-2130", 3, "Wednesday", [21, 30], [22, 30], "Recreational", ["Recreational"], "scrimmage"),
   slot("thu-2015", 4, "Thursday", [20, 15], [21, 15], "3rd/4th Division", ["3rd", "4th"], "scrimmage"),
   slot("thu-2130", 4, "Thursday", [21, 30], [22, 30], "5th/6th Division", ["5th", "6th"], "scrimmage"),
@@ -89,6 +119,20 @@ export const SLOTS: Slot[] = [
   slot("sat-2130", 6, "Saturday", [21, 30], [22, 30], "Recreational", ["Recreational"], "scrimmage"),
   slot("sun-1900", 0, "Sunday", [19, 0], [20, 0], "2nd/3rd Division", ["2nd", "3rd"], "scrimmage"),
 ];
+
+// Level-filter pill options for drop-ins/register, in the design's own
+// order (ascending division, then Recreational, then Skills Training) —
+// not schedule order. "Skills Training" is a session type, not a level
+// (DOMAIN-MODEL.md §2 — a slot with zero slot_levels never raises a
+// mismatch flag), but the filter row treats it as a same-shape pill
+// anyway, so it's a pseudo-level for this one UI purpose only. Matching a
+// slot: compare against `slot.label` directly (each of these is exactly
+// one slot's label, short-form "Division" already dropped).
+export const LEVEL_FILTERS = ["2nd/3rd", "3rd/4th", "5th/6th", "Recreational", "Skills Training"] as const;
+
+export function slotMatchesLevelFilter(s: Slot, filter: string): boolean {
+  return s.label === filter || s.label === `${filter} Division`;
+}
 
 export function slotById(id: string): Slot | undefined {
   return SLOTS.find((s) => s.id === id);
@@ -157,7 +201,10 @@ const ROSTER_CONFIG: Record<string, SlotRosterConfig> = {
   // Flagship example from the homepage brief: 18/20 skaters, 1/2 goalies —
   // and the one lone goalie hasn't even confirmed yet.
   "tue-2130": { skater: { confirmed: 11, unanswered: 7, declined: 0 }, goalie: { confirmed: 0, unanswered: 1, declined: 0 } },
-  "wed-2015": { skater: { confirmed: 6, unanswered: 2, declined: 1 }, goalie: { confirmed: 2, unanswered: 0, declined: 0 } },
+  // Skaters-only slot (D12) — zero goalie capacity, so zero goalie counts;
+  // a nonzero figure here would register more goalies than the slot can
+  // hold, which seasonFill()/openSpots() would silently under-report.
+  "wed-2015": { skater: { confirmed: 6, unanswered: 2, declined: 1 }, goalie: { confirmed: 0, unanswered: 0, declined: 0 } },
   // The problem session: two days out, mostly unanswered, one goalie.
   "wed-2130": { skater: { confirmed: 3, unanswered: 8, declined: 0 }, goalie: { confirmed: 0, unanswered: 1, declined: 0 } },
   // Full, with a waitlist.
@@ -234,6 +281,16 @@ export function formatDate(date: Date): string {
   return date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 }
 
+// "11–16 August" — drop-ins' week-header range, natural case (matching
+// every other eyebrow in the app, which relies on CSS text-transform:
+// uppercase rather than a pre-uppercased string). Both dates always fall
+// in the same month for this schedule (six consecutive days), so there's
+// no cross-month case to handle.
+export function formatDateRange(start: Date, end: Date): string {
+  const month = end.toLocaleDateString("en-GB", { month: "long" });
+  return `${start.getDate()}–${end.getDate()} ${month}`;
+}
+
 export function formatDateTime(date: Date): string {
   return date.toLocaleDateString("en-GB", {
     weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
@@ -295,6 +352,22 @@ const NEXT_SESSIONS: Record<string, NextSession> = Object.fromEntries(
 
 export function nextSessionFor(slotId: string): NextSession | undefined {
   return NEXT_SESSIONS[slotId];
+}
+
+// This week's total open spots across every slot — used by both the home
+// page's in-season drop-in CTA card and /drop-ins' own header count. This
+// is session-level (decline-freed spots, extras claims subtracted), not
+// the season-level useLiveFill number the pre-season list uses — see
+// page.module.css's week-calendar comment for why those are genuinely
+// different figures.
+export function weekOpenSpotsTotals(): Record<Position, number> {
+  return SLOTS.reduce(
+    (totals, s) => {
+      const detail = sessionDetail(s.id)!;
+      return { skater: totals.skater + detail.openSpots.skater, goalie: totals.goalie + detail.openSpots.goalie };
+    },
+    { skater: 0, goalie: 0 },
+  );
 }
 
 function countStatus(entries: RosterEntry[], status: AttendanceStatus): number {

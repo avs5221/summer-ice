@@ -1,9 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { Metadata } from "next";
+import { GoogleSignInButton } from "../google-signin-button";
 import { SiteNav } from "../site-nav";
 import { ThemeToggle } from "../theme-toggle";
-import { GoogleSignInButton } from "./google-signin-button";
 import { LoginForm } from "./login-form";
 import shared from "../page.module.css";
 import styles from "./login.module.css";
@@ -14,24 +13,30 @@ export const metadata: Metadata = {
 
 // Thin server shell, same split as register/page.tsx: static chrome here,
 // interaction (the form, the Google OAuth call) in client children.
+//
+// Sky page header carries the hero role here (design_handoff_season_dropins,
+// 2026-08-11) — "Sign in" as an h1 with a blurb underneath, no eyebrow. The
+// card below holds only the controls now; the logo lockup and the old
+// title/subtitle that used to live inside it moved up into this header
+// (the logo lockup is redundant with SiteNav's own brand mark directly
+// above it, so it's dropped rather than duplicated).
 export default function LoginPage() {
   return (
     <div className={shared.page}>
       <SiteNav active="login" />
 
+      <div className={styles.header}>
+        <div className={styles.headerInner}>
+          <h1 className={styles.heroTitle}>Sign in</h1>
+          <p className={styles.heroBlurb}>
+            See your nights, tell us when you can&rsquo;t make one, and pick up spots that open during the week.
+          </p>
+        </div>
+      </div>
+
       <div className={styles.shell}>
         <div className={styles.card}>
-          <div className={styles.cardBrand}>
-            <Image src="/logo-circle.png" alt="" width={26} height={26} className={shared.brandMark} />
-            <span className={styles.cardWordmark}>
-              Summer <span style={{ color: "var(--primary)" }}>Ice</span>
-            </span>
-          </div>
-
-          <h1 className={styles.title}>Sign in</h1>
-          <p className={styles.subtitle}>Good to have you back.</p>
-
-          <GoogleSignInButton />
+          <GoogleSignInButton className={styles.googleBtnFullWidth} />
 
           <div className={styles.divider}>
             <div className={styles.dividerLine} />

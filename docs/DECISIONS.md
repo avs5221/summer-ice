@@ -1565,3 +1565,124 @@ confirming the ordinary route/nav still renders with zero console
 errors. `tsc --noEmit` and `eslint` both clean. The handoff zip
 (`apps/web/Summer ice hockey landing page(1).zip`) was, again, not
 committed.
+
+### 2026-08-11 — Design handoff bundle: season/drop-ins rework (`design_handoff_season_dropins`)
+
+Michael handed off a third zip (`Summer ice hockey landing page(3).zip`,
+bundle `design_handoff_season_dropins`) — a substantial rework, not
+another small fix. Four themes: home hero rebuilt around two CTA cards
+(season / this-week drop-in), a brand-new `/drop-ins` route, `/register`
+rebuilt into the same six-column week-grid language, and a global
+placement change for the theme toggle (third round this session — see
+below).
+
+**Stopped before implementing on a real business-fact conflict, per
+CLAUDE.md's session ritual.** The handoff's own business-rules table
+claimed skills-training goalie pricing at €600 and Wednesday-skills-
+training-is-skaters-only as settled facts. Both contradicted
+`DOMAIN-MODEL.md`: D3 (settled) already fixed goalie skills pricing at
+€450, same rate as skater; D12 (open) explicitly said Skills Training
+capacity — for *both* positions — was unestablished, "needs Cas." Rather
+than quietly implement the handoff's numbers (silently overriding a
+settled decision) or quietly keep the old numbers (silently ignoring
+what might be genuine new information), asked Michael directly via
+`AskUserQuestion`. Answer on both: treat the handoff as authoritative —
+adopt €600, adopt Wednesday-skaters-only. `DOMAIN-MODEL.md` updated
+accordingly: D3's outcome rewritten to note the reversal and that
+skater/goalie skills rates are no longer equal; D12 moved from Open to
+Settled with an outcome text that's honest about *what* is now decided
+(the Wednesday-specific shape) versus what still isn't (the actual
+skater/goalie capacity magnitudes — 16/4 remains an unconfirmed
+placeholder, unchanged). `fake-data.ts` updated to match: `SKILLS_PRICE
+.goalie.seasonCents` → 60000; a new `SKILLS_CAPACITY_SKATERS_ONLY`
+override applied only to `wed-2015`; `wed-2015`'s `ROSTER_CONFIG` goalie
+counts zeroed (a nonzero count on a zero-capacity slot would have been
+silently wrong). Both changes are recorded as sourced from this design
+handoff, not from Cas directly — flagged for follow-up if that's ever
+wrong.
+
+**Theme toggle, third placement this session.** `position: absolute` →
+`position: fixed` → now a `position: sticky` track (`.themeToggleTrack`,
+`margin-top: auto`, rendered as the flex child immediately before
+`<SiteFooter />`) that floats 24px above the viewport while scrolling
+through page content and settles 20px above the footer once the page
+actually ends — solved structurally (the track has nowhere further to
+stick once the footer pushes it into view) rather than by the
+`position: fixed` + oversized footer-padding hack the last two rounds
+used. Footer padding reverts to 26px now that nothing needs clearing.
+`offsetBottom` (register's one-off prop for clearing its old fixed
+checkout bar) is gone entirely — register's checkout bar is itself
+`position: sticky` now with 92px of reserved right-padding, so the two
+elements coexist by construction instead of one dodging the other.
+`ThemeToggle`/`SiteFooter` render order flipped (toggle first) on all
+six pages that use the shared footer, since the sticky-track trick only
+works with the toggle immediately *before* the footer in flow.
+
+**New route: `/drop-ins`** (`app/drop-ins/page.tsx` + `drop-ins-
+client.tsx` + `drop-ins.module.css`). Six-column week calendar (real
+`sessionDetail()` data, not the handoff's own inert example array),
+role/level filter pills, per-role tap-target rows (green/amber/selected/
+full), a full-session waitlist toggle, an always-mounted sticky checkout
+bar, and a checkout modal — all local component state, no backend call,
+matching the no-backend-yet treatment `register-client.tsx` already
+established for its own basket flow. `GoogleSignInButton` promoted from
+`login/` to a shared top-level component once the checkout modal became
+a second real use of the identical disabled button.
+
+**`/register` rebuilt into the matching week grid — a real behaviour
+change, not just a restyle.** The old "I play as a Skater/Goalie/Both"
+global role setting is gone. Every card now shows whichever role rows
+have capacity (skater always; goalie unless the slot is skaters-only),
+and a role is picked per night by clicking its row — one role per slot,
+replaceable, exactly matching `/drop-ins`'s interaction. "I play" is now
+a pure filter (hides rows/cards with no room for that role), not a
+registration setting. Waitlisting also changes shape: reserves are now
+entirely separate from the payable basket (a boolean per full slot,
+contributing nothing to the total) rather than the old basket's
+"waitlisted" line kind — matching the handoff's own `picks` vs.
+`reserves` state split. Register also gains a footer for the first time
+(the previous version had none — the design's own markup includes the
+standard one, closing what reads like a gap rather than a deliberate
+omission).
+
+**Deliberately deviated from the README's own suggestion** to share the
+week-grid as one component between `/register` and `/drop-ins` — built
+as two page-scoped CSS modules and two page-scoped render trees instead.
+The two differ in enough real values (30px vs. 38px role rows, 172px vs.
+168px cards, `--sun` vs. `--primary` selection color, dates vs. weekday-
+only columns, a price shown per row on one but not the other) that a
+shared component would need nearly as many per-page overrides as it
+saved — same reasoning already applied to Privacy/How It Works' section
+numerals earlier in this session.
+
+**Bugs the browser-verification pass caught, not just cosmetic
+mismatches:**
+- The wave-1 walk-through nav (`app/components/nav.tsx`) doesn't know
+  about new routes by default — it hides itself only on a hardcoded set
+  of "restyled" paths, and `/drop-ins` wasn't in it, so the plain
+  five-link nav was rendering stacked above the real one. Added
+  `/drop-ins` to `RESTYLED_ROUTES`. Worth remembering for the next new
+  route this pattern needs updating for.
+- The sticky checkout bar's right-hand group (total + CTA, plus
+  register's hold-countdown note) had no wrap rule of its own at mobile
+  widths — only the outer bar wrapped, so at 390px the inner group
+  overflowed the viewport instead of stacking. Fixed by giving
+  `.stickyRight`/`.checkoutRight` their own `flex-wrap: wrap` at the
+  existing breakpoint; register additionally drops the hold-countdown
+  note there as the least essential piece. Caught via a real scroll-and-
+  screenshot check, not a `fullPage` capture — `fullPage` screenshots
+  render `position: sticky` elements frozen at an arbitrary mid-document
+  position and made this look like a much stranger layering bug than it
+  actually was before the real check clarified it.
+
+**Verified:** `tsc --noEmit` and a full `eslint app` pass both clean
+across the whole repo. A 31-check headless-Chromium pass (Playwright,
+the `apt-get download`/`dpkg-deb -x`/`LD_LIBRARY_PATH` no-root
+workaround) against a live dev server covering home (light/dark/
+mobile), drop-ins (default/selected/checkout-modal-open/checkout-modal-
+closed/filtered/dark/mobile), register (default/selected/contention-
+demo/dark/mobile), login and How It Works — zero console errors
+anywhere, both real bugs above caught and fixed before this was called
+done. The handoff zip (`apps/web/Summer ice hockey landing page(3).zip`)
+was not committed, same treatment as every design reference this
+session.

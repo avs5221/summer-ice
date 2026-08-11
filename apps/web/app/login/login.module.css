@@ -4,12 +4,41 @@
  * styles. Shared tokens (`.page`) come from ../page.module.css.
  */
 
+/* Sky page header — carries the hero role on this page (no separate hero
+ * band like the home page has). "Sign in" is the h1 here; the card below
+ * holds only the form controls, not its own title. */
+.header {
+  background: var(--sky-surface);
+  border-bottom: 1px solid var(--sky-border);
+}
+
+.headerInner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 30px 28px 34px;
+}
+
+.heroTitle {
+  font-size: clamp(30px, 3.6vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.heroBlurb {
+  font-size: 15px;
+  line-height: 1.6;
+  opacity: 0.75;
+  max-width: 560px;
+}
+
 .shell {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48px 28px;
+  padding: 40px 28px 48px;
 }
 
 .card {
@@ -19,60 +48,14 @@
   border: 1.5px solid var(--border);
   border-radius: var(--radius-cd);
   box-shadow: var(--shadow-cd-md);
-  padding: 32px 30px 28px;
+  padding: 30px 30px 28px;
 }
 
-.cardBrand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 22px;
-}
-
-.cardWordmark {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
-.title {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  margin-bottom: 6px;
-}
-
-.subtitle {
-  font-size: 14px;
-  color: var(--muted-foreground);
-  margin-bottom: 22px;
-}
-
-.googleBtn {
+/* .googleBtn itself moved to ../page.module.css (shared with the
+ * drop-ins checkout modal's identical disabled button) — this page just
+ * needs it full-width, via `className` on <GoogleSignInButton>. */
+.googleBtnFullWidth {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 11px 16px;
-  border-radius: var(--radius);
-  border: 1.5px solid var(--border);
-  background: transparent;
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.googleBtn:hover:not(:disabled) {
-  border-color: var(--primary);
-}
-
-.googleBtn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
 }
 
 .divider {

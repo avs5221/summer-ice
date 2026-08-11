@@ -237,8 +237,8 @@ export default function PrivacyPage() {
         </div>
       </div>
 
-      <SiteFooter />
       <ThemeToggle />
+      <SiteFooter />
     </div>
   );
 }

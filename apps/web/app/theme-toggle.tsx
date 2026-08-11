@@ -1,16 +1,20 @@
 "use client";
 
-// Light/dark toggle. `position: fixed` in the bottom-right corner of the
-// viewport — stays on screen while the page scrolls, rather than sitting
-// in the page's own bottom-right corner and scrolling out of view. One
-// consistent placement across every page (design handoff, 2026-08-11,
-// "design_handoff_landing_ctas"), replacing an earlier `position:
-// absolute` reconciliation (per direct product feedback at the time)
-// that this handoff explicitly reverses — see DECISIONS.md for both
-// rounds. `z-index: 60` clears the sticky nav and register's fixed
-// checkout bar; the footer's own bottom padding was increased instead
-// (`page.module.css`'s `.footerInner`) so the button doesn't sit over
-// "Privacy" and make it unclickable.
+// Light/dark toggle. Third placement approach this session — see
+// DECISIONS.md for the full history of why the previous two (`position:
+// absolute` against `.page`, then `position: fixed` to the viewport) each
+// got reversed. This one is structural rather than another position-hack:
+// the button sits inside a `position: sticky; bottom: 24px` track
+// (`.themeToggleTrack`, page.module.css) that is the flex child
+// immediately before `<SiteFooter />` and carries `margin-top: auto`. That
+// makes it float 24px above the viewport bottom while the page's own
+// content scrolls past — same visible behaviour as `position: fixed` had —
+// but once the *footer itself* scrolls into view, the track has nowhere
+// further to stick to and settles into its normal flow position just
+// above the footer, so it can never overlap the footer's own links. No
+// footer padding-hack, no offsetBottom prop for pages with their own fixed
+// bars — see .themeToggleTrack's comment for why register's checkout bar
+// no longer needs one either.
 //
 // Toggles the `.dark` class on <html> — see globals.css's
 // `@custom-variant dark`, which makes every `dark:` Tailwind utility
@@ -19,18 +23,12 @@
 // layout.tsx, so this component only ever reflects an already-correct
 // state, never causes the flash it would if it were the thing setting
 // the class for the first time.
-//
-// `offsetBottom` exists for exactly one caller: register-client.tsx,
-// whose fixed checkout bar sits over the same bottom-right corner this
-// button defaults to — confirmed by an actual click test, not assumed,
-// that the bar intercepts pointer events and makes the button
-// unreachable there without this. Every other page uses the default.
 import { useEffect, useState } from "react";
 import styles from "./page.module.css";
 
 const STORAGE_KEY = "si-theme";
 
-export function ThemeToggle({ size = 44, offsetBottom }: { size?: number; offsetBottom?: number }) {
+export function ThemeToggle({ size = 44 }: { size?: number }) {
   // Null until mounted: matches whatever the inline script already put on
   // <html>, rather than guessing and risking a hydration mismatch.
   const [dark, setDark] = useState<boolean | null>(null);
@@ -64,24 +62,26 @@ export function ThemeToggle({ size = 44, offsetBottom }: { size?: number; offset
   const isDark = dark ?? false;
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      title="Switch theme"
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
-      className={styles.themeToggle}
-      style={{ width: size, height: size, ...(offsetBottom !== undefined ? { bottom: offsetBottom } : {}) }}
-    >
-      {isDark ? (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <circle cx="8" cy="8" r="3" />
-          <path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3.05 3.05l1.13 1.13M11.82 11.82l1.13 1.13M12.95 3.05l-1.13 1.13M4.18 11.82l-1.13 1.13" />
-        </svg>
-      ) : (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <path d="M13.5 9.2A5.5 5.5 0 0 1 6.8 2.5a5.5 5.5 0 1 0 6.7 6.7Z" />
-        </svg>
-      )}
-    </button>
+    <div className={styles.themeToggleTrack}>
+      <button
+        type="button"
+        onClick={toggle}
+        title="Switch theme"
+        aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+        className={styles.themeToggle}
+        style={{ width: size, height: size }}
+      >
+        {isDark ? (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <circle cx="8" cy="8" r="3" />
+            <path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3.05 3.05l1.13 1.13M11.82 11.82l1.13 1.13M12.95 3.05l-1.13 1.13M4.18 11.82l-1.13 1.13" />
+          </svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+            <path d="M13.5 9.2A5.5 5.5 0 0 1 6.8 2.5a5.5 5.5 0 1 0 6.7 6.7Z" />
+          </svg>
+        )}
+      </button>
+    </div>
   );
 }

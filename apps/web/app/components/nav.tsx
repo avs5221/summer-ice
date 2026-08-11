@@ -21,7 +21,7 @@ const links = [
 // this wave-1 walk-through nav. Rendering both would stack two navs. The
 // remaining wave-1 pages (schedule, admin, session roster) haven't been
 // restyled yet and still use this one. Grows as more pages get restyled.
-const RESTYLED_ROUTES = new Set(["/", "/register", "/login", "/contact", "/privacy", "/how-it-works"]);
+const RESTYLED_ROUTES = new Set(["/", "/register", "/login", "/contact", "/privacy", "/how-it-works", "/drop-ins"]);
 
 export function Nav() {
   const pathname = usePathname();

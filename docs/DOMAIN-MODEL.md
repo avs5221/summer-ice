@@ -20,7 +20,7 @@ Facts about the league, as of the 2026 season. All of these are **data, not cons
 | Healthy fill | 16+ skaters, 2 goalies |
 | Skills training | split ice — skaters one half, goalies the other |
 | Season price — skater | €300 per slot (regular), €450 (skills training) |
-| Season price — goalie | €150 per slot (half price, regular), €450 (skills training, full price) |
+| Season price — goalie | €150 per slot (half price, regular), €600 (skills training — not the same rate as skater; see D3) |
 | Extras price — skater | €15 per skate |
 | Extras price — goalie | Free |
 | Levels | 2nd, 3rd, 4th, 5th, 6th, Recreational — six individual divisions, not the compound slot labels |
@@ -53,7 +53,7 @@ Two shapes of hour: the 21:30–22:30 late slot and the 20:15–21:15 earlier on
 
 **None of this is stable year to year.** Slot count, days, times, levels and capacities all change with what the rink offers. It is all per-season data — no enums in code for levels, no hardcoded 20/2.
 
-> **Open — Skills Training capacity.** Skills Training is split ice, skaters on one half and goalies on the other, so 20/2 does not apply. The actual skater and goalie capacities have never been established, and at €450 per person these are the most expensive slots sold. Needs Cas.
+> **Skills Training capacity — partially resolved (see D12).** Skills Training is split ice, skaters on one half and goalies on the other, so 20/2 does not apply. Wednesday's Skills Training slot is skaters-only (goalie capacity 0); Saturday's keeps both positions. The exact skater/goalie magnitudes are still not confirmed with Cas directly — 16 skaters / 4 goalies (Saturday) is the placeholder `fake-data.ts` and the site's mockups use, carried forward unchanged by the design handoff that supplied the Wednesday-only rule, not a number anyone has signed off on.
 
 ### Changes from current practice
 
@@ -208,7 +208,7 @@ Capacity, ideal fill and pricing are keyed on **(slot, position)** as rows, neve
 - `position` — `skater` | `goalie`
 - `capacity` — 20 / 2 for regular skates
 - `ideal_capacity` — 16 / 2
-- `season_price_cents` — 2026: regular 30000 / 15000, skills training 45000 / 45000
+- `season_price_cents` — 2026: regular 30000 / 15000, skills training 45000 / 60000
 - `extras_price_cents` — 2026: regular 1500 / 0, skills training 1500 / 0
 
 > **Why rows, not columns:** this handles regular skates (20 skaters + 2 goalies) and split-ice skills training (skaters one half, goalies the other) with the same structure, and survives whatever configuration the rink hands over next year. Attempt 2 treated position as a player attribute, which breaks the moment a goalie wants to skate out.
@@ -896,7 +896,7 @@ Registration is built **first and hardened**, because it carries the most money 
 |---|---|---|
 | D1 | Resolution of unanswered attendance | **Unknown is out.** Resolves to not-attending at `release_at`, default 48h. Mandatory escalating reminder ladder, digested per player. Late reinstatement if the spot is unclaimed. See §5. |
 | D2 | Vetting of unknown claimers | **No gate.** Passive `player_flags` only — admins tag who they recognise, system auto-tags where data supports it. See §2, §6. |
-| D3 | Goalie pricing | **Half price for the season** (€150 regular), **full price for skills training** (€450), **free as extras**. Absorbed by `slot_capacities` rows, no special-casing. See §3. |
+| D3 | Goalie pricing | **Half price for the season** (€150 regular), **€600 for skills training** (revised 2026-08-11 — supersedes the original "full price, same as skater's €450" framing; the skater/goalie skills-training rate is no longer equal), **free as extras**. Absorbed by `slot_capacities` rows, no special-casing. See §3. |
 | D4 | Coach payables in the ledger | **In scope.** One append-only stream for both sides via signed amounts; `fee` and `payout` entry types; rate captured on the assignment. Settlement recorded, not automated. See §8. |
 | D5 | Naomi's PII boundary | **Contact details yes** — she needs to reach people. Exclusion is purely financial, covering coach payables as well as player balances. See §2. |
 | D6 | Roster visibility format | First name + surname initial as the default, configurable. Flexible pending feedback. |
@@ -905,12 +905,11 @@ Registration is built **first and hardened**, because it carries the most money 
 | D9 | Auto-flag heuristic | Declared level vs. slot intent in year one; richer comparison against prior seasons from year two. |
 | D10 | Goalie flaking exposure | **Spam protection only.** Cap of two concurrent open claims, rate limiting, late-withdrawal flags. Real problems handled by a human. See §6. |
 | D11 | `spot_open` notification unit | **Per availability transition, not per spot.** One notification when a session goes full → has-space, slot-filtered, judged on committed occupancy with pending holds excluded. Per-session waitlist dropped as redundant. See §6, §11. |
+| D12 | Skills Training capacity | **Partially resolved, 2026-08-11.** Wednesday's Skills Training slot is skaters-only (goalie capacity 0); Saturday's keeps both positions. The magnitudes themselves — 16 skaters / 4 goalies (Saturday) — are still the pre-existing placeholder, not a number Cas has confirmed; only the Wednesday-specific shape is decided, sourced from a design handoff rather than directly from Cas. See §1. |
 
 ### Open
 
-| # | Decision | Needs |
-|---|---|---|
-| D12 | Skills Training capacity — split ice, so 20/2 does not apply. Skater and goalie capacities unknown, and at €450/head these are the highest-value slots sold. See §1. | Cas |
+*(none currently open)*
 
 ---
 

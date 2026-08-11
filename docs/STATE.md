@@ -246,29 +246,88 @@ clickable, register's toggle still clears its checkout bar, mobile
 collapse of the new section confirmed. Zero console errors. Full
 account in `DECISIONS.md`.
 
+**Same day, hero layout fix:** a follow-up zip flagged that the previous
+pass tightened the split hero's padding but never implemented the
+layout change its own README called for. Hero rebuilt stacked and
+centered (92×92 logo leads, single-line title, `flex-direction:
+column`), the split grid and its own mobile media query removed
+entirely. Verified against a freshly restarted dev server after finding
+the one already running was a stale prior-session process still serving
+pre-redesign HTML. `tsc`/`eslint` clean, zero console errors. Full
+account in `DECISIONS.md`.
+
+**Same day, design handoff (season/drop-ins rework):** a third zip
+(`design_handoff_season_dropins`) — a substantial rework, not a small
+fix. Stopped first on a real business-fact conflict per the session
+ritual: the handoff's skills-training pricing/capacity claims (€600
+goalie, Wednesday-skaters-only) contradicted `DOMAIN-MODEL.md`'s settled
+D3 and open D12; asked Michael directly rather than guess, and both were
+adopted as new real information (`DOMAIN-MODEL.md` and `fake-data.ts`
+updated accordingly — see `DECISIONS.md` for exactly what's now decided
+versus still placeholder). Theme toggle changes placement a third time
+this session, now `position: sticky` immediately before the footer
+(structural fix, no more padding-hack); footer padding back to 26px;
+`offsetBottom` removed entirely now that register's own checkout bar
+reserves its own space instead. Home hero rebuilt around two CTA cards
+(season / this-week drop-in, order swaps by season phase); the schedule
+section branches on `seasonPhase()` between a simple pre-season list and
+a six-column in-season week calendar. New route `/drop-ins` (week
+calendar, role/level filters, checkout bar, checkout modal, all local
+state, no backend). `/register` rebuilt into the same week-grid
+language — a real behaviour change, not just a restyle: no more global
+"I play as" role, every card shows whichever role rows have capacity,
+one role per night picked by clicking its row; reserves for full nights
+are now a separate free toggle, not a basket line; register gains a
+footer for the first time. `GoogleSignInButton` promoted to a shared
+component (`app/google-signin-button.tsx`) once the checkout modal
+became a second real use. Verification caught two real bugs before this
+was called done: `/drop-ins` was missing from the wave-1 nav's
+hide-list (stacked two navs), and the sticky checkout bar's right-hand
+group had no wrap rule of its own at mobile widths (overflowed instead
+of stacking) — both fixed. `tsc --noEmit` and a full `eslint app` pass
+both clean; a 31-check headless-Chromium suite across home/drop-ins/
+register/login/how-it-works (light, dark, 390px mobile, and real
+interaction — selecting spots, opening/closing the checkout modal,
+triggering the contention demo) all pass, zero console errors. Full
+account in `DECISIONS.md`.
+
 ---
 
 ## Last commit
 
 This file is regenerated as part of the same commit it describes, so it
 can't name its own hash in advance — check `git log -1`. That commit
-implements a design handoff bundle (`design_handoff_landing_ctas`):
-theme toggle back to `position: fixed` (reverses the previous two
-commits, per the handoff's own explicit statement that it's an informed
-reversal — see `DECISIONS.md`), "How it works" dropped from persistent
-nav, landing page vertical rhythm tightened, and the landing CTA
-hierarchy rebuilt around "one filled button per zone, color carries
-meaning" — including a new "Two more ways in" section that's the first
-time the reserves-list entry point has existed on the homepage at all.
-The commit before it is a one-line follow-up to the one before *that*:
-`.page { padding-bottom: 100px }`, because the earlier `position:
-absolute` fix put the toggle in the right *positioning mode* but not
-enough clearance to actually read as separate from the footer — Michael
-caught it immediately after that commit shipped. (That whole `absolute`
-detour is now superseded by this commit's reversion back to `fixed` —
-recorded in full in `DECISIONS.md` rather than edited out of history,
-since it's what the handoff itself explicitly reverses.) Before that,
-another commit grounds `/privacy` in the real business: a new §07
+implements a third design handoff bundle (`design_handoff_season_
+dropins`): home hero rebuilt around two CTA cards, a new `/drop-ins`
+route, `/register` rebuilt into the matching six-column week-grid
+language (a real interaction change, not just a restyle — see
+`DECISIONS.md`), the theme toggle's third placement this session (now
+`position: sticky` immediately before the footer), and a resolved
+business-fact conflict with `DOMAIN-MODEL.md` (skills-training goalie
+pricing and Wednesday capacity) that Michael was asked about directly
+before anything was implemented rather than guessed either way. The
+commit before it is a same-day follow-up: the previous handoff's hero
+was supposed to be a stacked, centered layout, but that pass only
+tightened the old split layout's padding without ever implementing the
+layout change itself — fixed once flagged by the next handoff's own
+README. The commit before *that* implements a design handoff bundle
+(`design_handoff_landing_ctas`): theme toggle back to `position: fixed`
+(reverses the previous two commits, per the handoff's own explicit
+statement that it's an informed reversal — see `DECISIONS.md`), "How it
+works" dropped from persistent nav, landing page vertical rhythm
+tightened, and the landing CTA hierarchy rebuilt around "one filled
+button per zone, color carries meaning" — including a new "Two more
+ways in" section that's the first time the reserves-list entry point
+has existed on the homepage at all. The commit before that is a
+one-line follow-up to the one before *that*: `.page { padding-bottom:
+100px }`, because the earlier `position: absolute` fix put the toggle
+in the right *positioning mode* but not enough clearance to actually
+read as separate from the footer — Michael caught it immediately after
+that commit shipped. (That whole `absolute` detour, and the `fixed`
+placement that briefly followed it, are both now superseded by the
+sticky-track approach two paragraphs up — recorded in full in
+`DECISIONS.md` rather than edited out of history.) Before that, another
+commit grounds `/privacy` in the real business: a new §07
 synthesizing the real summerice.nl
 terms and conditions (pasted in by Michael after this session's own
 fetch attempts were blocked — 403s and an unfetchable archive.org), a
@@ -314,7 +373,7 @@ identity, closing the security gap they shipped with on purpose.
 | `packages/db` | Drizzle schema (27 tables), 7 migrations, seed scripts, env/guard-host scripts, realtime health check, `dbDirectPooled(max)`. No `outbox` table yet. **Found this session:** the `sessions` table (`token_hash`, `revoked_at`) is a self-hosted-plan relic nothing uses — Supabase Auth's own JWT/cookie session is authoritative. Left migrated, not dropped; see `ARCHITECTURE.md` §7 and `DOMAIN-MODEL.md` §2 |
 | `packages/core` | `slot-fill.ts`, `capacity-lock.ts`, `registration.ts`, `waitlist.ts` (season-registration concurrency core, phase 3, done). **New:** `identity.ts` — `ensurePersonForAuthUser` (the `credentials` insert on first sign-in, idempotent), `getPersonForAuthSubject`, `getPersonRoles`, `personHasRole`. 18 integration tests total (4 new), plus the on-demand `load-test/season-registration.ts` harness. No attendance or extras-claim functions; no accept-offer function; no dependent-promotion function |
 | `packages/contracts` | `registration.ts` (unchanged in shape except `personId` removed from `holdCartRequestSchema` — see below) plus **new** `identity.ts` (`signupRequestSchema`, `loginRequestSchema`) |
-| `apps/web` | Registration API routes (`app/api/registrations/**`) call `~/lib/auth`'s `requireCurrentPerson`/`requireOwnerOrRole` instead of trusting a body-supplied `personId` — **the hold route's request schema no longer accepts `personId` at all**, it's taken from the session. `app/lib/supabase/server.ts` + `browser.ts` (the `@supabase/ssr` client factories — distinct from the pre-existing `app/lib/supabase-client.ts`, which stays the public, unauthenticated Realtime-only client, on purpose), `proxy.ts` (Next 16's renamed `middleware.ts` — session-cookie refresh only, no redirect gating), `app/lib/auth.ts` (`getCurrentPerson`/`requireCurrentPerson`/`requireOwnerOrRole`), `app/signup/`, `app/lib/auth-actions.ts` (logout). `/schedule`, `/admin` and `/signup` are still fake-data/wave-1, unstyled. `/`, `/register`, `/login`, `/contact`, `/privacy` and `/how-it-works` are all restyled/built from the "Summer Ice Landing" Claude Design project, sharing `app/site-nav.tsx`, `app/site-footer.tsx`, `app/theme-toggle.tsx` and `app/toc-nav.tsx`. **Current shared-chrome state, after the 2026-08-11 design handoff superseded some of the above:** `SiteNav` is brand · Home · Sign in · Register (pill) only — no "How it works" link, `active?: "home" \| "register" \| "login"`. `SiteFooter` links are Schedule · Contact · Privacy. `ThemeToggle` is `position: fixed` (viewport-anchored, `z-index: 60`, `.footerInner` padding `76px` at the bottom so it doesn't cover "Privacy"); `register-client.tsx`'s toggle passes `offsetBottom={100}` to clear its own fixed checkout bar. `/` — still `force-dynamic`, still reads `getSlotFillOverview()` for real (`app/page.module.css`, `app/landing-slot-row.tsx`). Hero layout is a stacked, centered column (92×92 logo → eyebrow → single-line title → description → live count → one CTA, `max-width: 760px`, `flex-direction: column`, `gap: 16px`) at every viewport width, not the earlier split grid with its own mobile media query — a same-day follow-up fix (the first design-handoff pass only tightened the split layout's padding; the handoff bundle's own README flagged that the layout change itself had been missed). Landing CTA hierarchy: one filled button per zone — hero has only "Sign me up →"; schedule rows read "Season spot →" (outlined) / "Join reserves →"; a "Two more ways in" section (`.waysIn`) names both non-season entry points (reserves list → `/contact`, drop-in → `/register`); a "Read how it all works →" link replaces nav's old link to `/how-it-works`; the closing CTA band is neutral-card styled, not sun. `/register` — still fake-data (`register-client.tsx`), existing hold/waitlist/contention-demo logic kept and extended (real "stale" row state), not thrown out for the design's own inert static mock. `/login` — real `login` server action, centered auth card (`app/login/login.module.css`); "Continue with Google" (`app/login/google-signin-button.tsx`) is `disabled` — Google isn't an enabled Supabase provider yet, confirmed `signInWithOAuth` can't fail gracefully in that state. `/contact` — `contact-form.tsx` composes a `mailto:info@summerice.nl` link (the real, confirmed address) since no backend exists to receive a submission. `/privacy` — 9 TOC sections including §07 "Payments and cancellations" (synthesized from the real summerice.nl terms) and §09 "Who we are" (real KVK `81043333` / VAT `NL003525536B16`); factual claims checked against `DOMAIN-MODEL.md`/`ARCHITECTURE.md`/the real terms, all matched, nothing invented. `/how-it-works` — 7 TOC sections, same scroll-spy shape as `/privacy` (shared `app/toc-nav.tsx`; section-numeral styling stays page-scoped since the two designs' sizes genuinely differ); content fact-checked, all matched. `app/components/nav.tsx` (the wave-1 walk-through nav) hides itself on all six routes. `globals.css` gained the design's OKLCH token set and switched `dark:` to class strategy site-wide (`@custom-variant dark`); `layout.tsx` gained the theme-init inline script + `suppressHydrationWarning` on `<html>` that makes that safe — see `DECISIONS.md` for the full history, including two reverted intermediate states of the theme toggle |
+| `apps/web` | Registration API routes (`app/api/registrations/**`) call `~/lib/auth`'s `requireCurrentPerson`/`requireOwnerOrRole` instead of trusting a body-supplied `personId` — **the hold route's request schema no longer accepts `personId` at all**, it's taken from the session. `app/lib/supabase/server.ts` + `browser.ts` (the `@supabase/ssr` client factories — distinct from the pre-existing `app/lib/supabase-client.ts`, which stays the public, unauthenticated Realtime-only client, on purpose), `proxy.ts` (Next 16's renamed `middleware.ts` — session-cookie refresh only, no redirect gating), `app/lib/auth.ts` (`getCurrentPerson`/`requireCurrentPerson`/`requireOwnerOrRole`), `app/signup/`, `app/lib/auth-actions.ts` (logout). `/schedule`, `/admin` and `/signup` are still fake-data/wave-1, unstyled. `/`, `/register`, `/login`, `/contact`, `/privacy`, `/how-it-works` and (new) `/drop-ins` are all restyled/built from Claude Design projects, sharing `app/site-nav.tsx`, `app/site-footer.tsx`, `app/theme-toggle.tsx`, `app/toc-nav.tsx` and `app/google-signin-button.tsx`. **Current shared-chrome state, after the 2026-08-11 `design_handoff_season_dropins` bundle superseded some of the above:** `SiteNav` is brand · Home · Sign in · Register (pill) only, `active?: "home" \| "register" \| "login"`. `SiteFooter` links are Schedule · Contact · Privacy. `ThemeToggle` is a `position: sticky` "track" (`.themeToggleTrack`, `margin-top: auto`) rendered as the flex child immediately before `<SiteFooter />` — floats 24px above the viewport while scrolling, settles 20px above the footer at the actual end of the page; this is the toggle's third placement this session (`absolute` → `fixed` → this), each an informed reversal per its own handoff, not drift — see `DECISIONS.md`. `.footerInner` bottom padding is back to 26px; the old `offsetBottom` prop is gone, since sticky bars now reserve their own 92px of right-padding instead of needing the toggle to dodge them. `/` — still `force-dynamic`, still reads `getSlotFillOverview()` for real (`app/page.module.css`, `app/landing-slot-row.tsx`). Hero is two CTA cards (season / this-week drop-in, order swaps by `seasonPhase()`) under a top row (eyebrow/title/desc left, 84–116px logo right) — the fourth hero shape this session; see `DECISIONS.md`. `#schedule` branches on `seasonPhase()`: "before" renders a plain pre-season link-row list (live season fill via `useLiveFill`); "during" (what today's fixed `TODAY` always resolves to) renders a six-column week calendar of read-only session cards linking to `/drop-ins`, session-level data via `sessionDetail()`. "Two more ways in" CTAs: reserves list → `/register` ("Join the reserves →"), drop-in → `/drop-ins` ("See spots open this week →") — reversed from the previous pass's `/contact`-based reserves link, per this handoff's own source copy. `/drop-ins` (new route) — `app/drop-ins/page.tsx` + `drop-ins-client.tsx` + `drop-ins.module.css`: six-column week calendar, role/level filter pills, per-role tap-target rows (green/amber/selected/full), full-session waitlist toggle, always-mounted sticky checkout bar, checkout modal — all local component state, no backend, session-level `sessionDetail()` data (not live-broadcast — see file comments for why that's a deliberate scope split from `/`'s pre-season list). `/register` — rebuilt into the same week-grid visual language as `/drop-ins` (deliberately a second page-scoped CSS module, not a shared component — real per-page differences: 38px rows with a price vs. 30px, `--primary` selection vs. `--sun`, weekday-only columns vs. dated). Real behaviour change, not just a restyle: the old global "I play as a Skater/Goalie/Both" is gone — every card shows whichever role rows have capacity, one role per night picked by clicking its row; "I play" is now a pure filter; full-night reserves are a separate free toggle, not a basket line; gains a footer for the first time. Hold/contention-demo logic (`SIMULATED_SLOT_ID`, real countdown, "stale" pick detection) kept and adapted, not thrown out. `/login` — real `login` server action; gained a sky-header hero ("Sign in" + blurb) with the card holding only the form controls, per this same handoff. `/contact` — `contact-form.tsx` composes a `mailto:info@summerice.nl` link (the real, confirmed address) since no backend exists to receive a submission. `/privacy` — 9 TOC sections including §07 "Payments and cancellations" (synthesized from the real summerice.nl terms) and §09 "Who we are" (real KVK `81043333` / VAT `NL003525536B16`). `/how-it-works` — 7 TOC sections, same scroll-spy shape as `/privacy`; §06 "Skills training" now states the real €450/€600 split and the Wednesday-skaters-only rule. `app/components/nav.tsx` (the wave-1 walk-through nav) hides itself on all seven routes — `/drop-ins` had to be added to its `RESTYLED_ROUTES` set explicitly, caught by the browser-verification pass, not inspection. `app/lib/fake-data.ts` — skills-training goalie price is now €600 (not €450, D3 revised); Wednesday Skills Training has zero goalie capacity (`SKILLS_CAPACITY_SKATERS_ONLY`, D12 partially resolved) — both sourced from the design handoff and recorded as such in `DOMAIN-MODEL.md`, not confirmed with Cas directly. `globals.css` gained the design's OKLCH token set and switched `dark:` to class strategy site-wide (`@custom-variant dark`); `layout.tsx` gained the theme-init inline script + `suppressHydrationWarning` on `<html>` that makes that safe — see `DECISIONS.md` for the full history, including three superseded intermediate states of the theme toggle and two of the landing hero |
 | `apps/mobile` | Does not exist — not scaffolded, per plan (Phase 4/12) |
 
 ### The registration routes' security gap is closed for the case tested
